@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Package, Truck, MapPin, CheckCircle2, FileText, AlertTriangle,
   Search, Radio, Clock, Weight, Shield, Mail, Headphones,
@@ -8,69 +8,9 @@ import {
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DEMO TRACKING DATA - 3 different states to showcase the design
+// TEMP DATA - Will be replaced with Supabase database
 // ═══════════════════════════════════════════════════════════════════════════
-const DEMO_SHIPMENTS: Record<string, any> = {
-  'DV9400123456789012345678': {
-    trackingNumber: 'DV9400123456789012345678',
-    status: 'In Transit',
-    stage: 3,
-    onHold: false,
-    eta: 'Thursday, November 14, 2026',
-    lastUpdated: '2 hours ago',
-    from: { city: 'Los Angeles', state: 'CA', zip: '90001', x: 18, y: 60 },
-    to: { city: 'New York', state: 'NY', zip: '10001', x: 82, y: 35 },
-    currentLocation: { city: 'Chicago, IL', x: 60, y: 38 },
-    weight: '4 lbs 8 oz',
-    service: 'Discreet Vault Priority',
-    history: [
-      { date: 'Nov 12, 2026', time: '2:14 PM', location: 'Chicago, IL 60607', status: 'Arrived at Discreet Vault Facility' },
-      { date: 'Nov 12, 2026', time: '6:32 AM', location: 'Kansas City, MO 64101', status: 'Departed Discreet Vault Facility' },
-      { date: 'Nov 11, 2026', time: '11:48 PM', location: 'Kansas City, MO 64101', status: 'Arrived at Discreet Vault Facility' },
-      { date: 'Nov 11, 2026', time: '8:15 AM', location: 'Denver, CO 80202', status: 'Departed Discreet Vault Facility' },
-      { date: 'Nov 10, 2026', time: '4:22 PM', location: 'Los Angeles, CA 90001', status: 'Picked Up by Secure Courier' },
-      { date: 'Nov 10, 2026', time: '9:30 AM', location: 'Los Angeles, CA 90001', status: 'Shipment Created — Awaiting Pickup' },
-    ],
-  },
-  'DV9400999888777666555444': {
-    trackingNumber: 'DV9400999888777666555444',
-    status: 'On Hold',
-    stage: 3,
-    onHold: true,
-    onHoldReason: 'Security verification required at sorting facility',
-    eta: 'Pending release',
-    lastUpdated: '15 minutes ago',
-    from: { city: 'Miami', state: 'FL', zip: '33101', x: 80, y: 80 },
-    to: { city: 'Seattle', state: 'WA', zip: '98101', x: 20, y: 18 },
-    currentLocation: { city: 'Dallas, TX', x: 50, y: 65 },
-    weight: '12 lbs 2 oz',
-    service: 'Discreet Vault Black',
-    history: [
-      { date: 'Nov 12, 2026', time: '5:45 PM', location: 'Dallas, TX 75201', status: 'ON HOLD — Security verification required', alert: true },
-      { date: 'Nov 12, 2026', time: '3:20 PM', location: 'Dallas, TX 75201', status: 'Arrived at Discreet Vault Facility' },
-      { date: 'Nov 11, 2026', time: '7:14 AM', location: 'Atlanta, GA 30301', status: 'Departed Discreet Vault Facility' },
-      { date: 'Nov 10, 2026', time: '10:00 AM', location: 'Miami, FL 33101', status: 'Picked Up by Secure Courier' },
-    ],
-  },
-  'DV9400555444333222111000': {
-    trackingNumber: 'DV9400555444333222111000',
-    status: 'Delivered',
-    stage: 5,
-    onHold: false,
-    eta: 'Delivered November 11, 2026',
-    lastUpdated: '1 day ago',
-    from: { city: 'Boston', state: 'MA', zip: '02101', x: 88, y: 28 },
-    to: { city: 'San Francisco', state: 'CA', zip: '94101', x: 12, y: 45 },
-    currentLocation: { city: 'San Francisco, CA', x: 12, y: 45 },
-    weight: '2 lbs 4 oz',
-    service: 'Discreet Vault Priority',
-    history: [
-      { date: 'Nov 11, 2026', time: '2:45 PM', location: 'San Francisco, CA 94101', status: 'Delivered — Signature Confirmed' },
-      { date: 'Nov 11, 2026', time: '9:20 AM', location: 'San Francisco, CA 94101', status: 'Out for Delivery' },
-      { date: 'Nov 11, 2026', time: '6:30 AM', location: 'San Francisco, CA 94101', status: 'Arrived at Local Facility' },
-    ],
-  },
-};
+const SHIPMENTS: Record<string, any> = {};
 
 const STAGES = [
   { id: 1, label: 'Created', Icon: FileText },
@@ -92,17 +32,16 @@ export default function TrackPage() {
 
     setTimeout(() => {
       const trimmed = input.trim().replace(/\s/g, '');
-      const found = DEMO_SHIPMENTS[trimmed];
+      const found = SHIPMENTS[trimmed];
 
       if (found) {
         setShipment(found);
-        // Smooth scroll to results
         setTimeout(() => {
           document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
       } else {
         setShipment(null);
-        setError('No shipment found with that tracking number. Try one of the demo numbers below.');
+        setError('No shipment found with that tracking number. Please verify your tracking reference and try again.');
       }
       setSearching(false);
     }, 800);
@@ -110,13 +49,10 @@ export default function TrackPage() {
 
   return (
     <main className="min-h-screen overflow-hidden relative" style={{ background: '#050816', color: '#ffffff' }}>
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          ANIMATED BACKGROUND
-          ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* ANIMATED BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at top, #0b1730 0%, #050816 60%)' }} />
 
-        {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.07]">
           <div className="absolute inset-0" style={{
             backgroundImage: 'linear-gradient(rgba(27,111,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(27,111,255,0.3) 1px, transparent 1px)',
@@ -124,21 +60,17 @@ export default function TrackPage() {
           }} />
         </div>
 
-        {/* Glow orbs */}
         <div className="absolute -top-40 left-10 w-[600px] h-[600px] rounded-full blur-[160px] animate-pulse" style={{ background: 'rgba(27,111,255,0.15)' }} />
         <div className="absolute top-1/2 -right-40 w-[700px] h-[700px] rounded-full blur-[180px]" style={{ background: 'rgba(0,95,204,0.12)' }} />
         <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] rounded-full blur-[140px]" style={{ background: 'rgba(218,41,28,0.06)' }} />
 
-        {/* Scan line */}
         <div className="absolute top-0 left-0 right-0 h-px" style={{
           background: 'linear-gradient(90deg, transparent, #1b6fff, transparent)',
           animation: 'scanX 8s linear infinite',
         }} />
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          HEADER
-          ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* HEADER */}
       <header className="relative z-50 border-b backdrop-blur-xl" style={{ borderColor: 'rgba(59,130,246,0.18)', background: 'rgba(5,8,22,0.85)' }}>
         <div className="container flex items-center justify-between py-4 px-6 max-w-7xl mx-auto">
           <a href="/" className="flex items-center gap-3 no-underline group">
@@ -174,12 +106,9 @@ export default function TrackPage() {
         </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          HERO + TRACKING INPUT
-          ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* HERO + TRACKING INPUT */}
       <section className="relative z-10 py-12 md:py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Live system badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 backdrop-blur-md"
             style={{
               background: 'rgba(27,111,255,0.1)',
@@ -202,7 +131,6 @@ export default function TrackPage() {
             Enter your tracking reference to view real-time shipment status, custody chain, and delivery progress.
           </p>
 
-          {/* TRACKING INPUT */}
           <div className="relative max-w-3xl mx-auto">
             <div className="absolute -inset-4 rounded-2xl blur-2xl animate-pulse" style={{ background: 'rgba(27,111,255,0.2)' }} />
 
@@ -249,33 +177,6 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Demo helpers */}
-            {!shipment && !error && (
-              <div className="mt-6 flex flex-col gap-2 text-xs" style={{ color: '#6d7580' }}>
-                <p className="uppercase tracking-wider font-bold">Try these demos:</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <button
-                    onClick={() => { setInput('DV9400123456789012345678'); setTimeout(handleTrack, 100); }}
-                    className="px-3 py-1.5 rounded-lg font-mono transition-all hover:scale-105"
-                    style={{ background: 'rgba(27,111,255,0.1)', color: '#1b6fff', border: '1px solid rgba(27,111,255,0.3)' }}>
-                    In Transit
-                  </button>
-                  <button
-                    onClick={() => { setInput('DV9400999888777666555444'); setTimeout(handleTrack, 100); }}
-                    className="px-3 py-1.5 rounded-lg font-mono transition-all hover:scale-105"
-                    style={{ background: 'rgba(218,41,28,0.1)', color: '#DA291C', border: '1px solid rgba(218,41,28,0.3)' }}>
-                    On Hold
-                  </button>
-                  <button
-                    onClick={() => { setInput('DV9400555444333222111000'); setTimeout(handleTrack, 100); }}
-                    className="px-3 py-1.5 rounded-lg font-mono transition-all hover:scale-105"
-                    style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>
-                    Delivered
-                  </button>
-                </div>
-              </div>
-            )}
-
             {error && (
               <div className="mt-6 p-4 rounded-xl text-sm flex items-center gap-3" style={{
                 background: 'rgba(218,41,28,0.1)',
@@ -290,9 +191,7 @@ export default function TrackPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          TRACKING RESULTS
-          ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* TRACKING RESULTS */}
       {shipment && (
         <section id="results" className="relative z-10 pb-24 px-6" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
           <div className="max-w-6xl mx-auto space-y-6">
@@ -385,9 +284,7 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════════════════
-                LIVE MAP - Stylized SVG US Map with route + pulsing pin
-                ═══════════════════════════════════════════════════════════════════════════ */}
+            {/* LIVE MAP */}
             <div className="relative rounded-2xl p-6 md:p-8 backdrop-blur-xl overflow-hidden"
               style={{
                 background: 'rgba(16,24,39,0.82)',
@@ -410,7 +307,6 @@ export default function TrackPage() {
                 minHeight: '320px',
               }}>
                 <svg viewBox="0 0 100 70" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-                  {/* Grid background */}
                   <defs>
                     <pattern id="mapGrid" width="5" height="5" patternUnits="userSpaceOnUse">
                       <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(27,111,255,0.08)" strokeWidth="0.1" />
@@ -427,7 +323,6 @@ export default function TrackPage() {
                   </defs>
                   <rect width="100" height="70" fill="url(#mapGrid)" />
 
-                  {/* Stylized US outline (simplified) */}
                   <path
                     d="M 8 25 Q 10 20 15 18 L 25 16 L 35 14 L 50 13 L 65 14 L 78 16 L 88 20 L 92 30 L 90 42 L 85 50 L 75 55 L 60 58 L 45 60 L 30 58 L 18 55 L 10 48 L 6 38 Z"
                     fill="rgba(11,23,48,0.6)"
@@ -435,7 +330,6 @@ export default function TrackPage() {
                     strokeWidth="0.3"
                   />
 
-                  {/* Route line - dashed animated */}
                   <line
                     x1={shipment.from.x}
                     y1={shipment.from.y}
@@ -447,7 +341,6 @@ export default function TrackPage() {
                     style={{ animation: 'dashMove 2s linear infinite' }}
                   />
 
-                  {/* Glow around current location */}
                   {shipment.stage < 5 && (
                     <circle
                       cx={shipment.currentLocation.x}
@@ -457,7 +350,6 @@ export default function TrackPage() {
                     />
                   )}
 
-                  {/* FROM pin */}
                   <g>
                     <circle cx={shipment.from.x} cy={shipment.from.y} r="2" fill="#1b6fff" opacity="0.3">
                       <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
@@ -466,7 +358,6 @@ export default function TrackPage() {
                     <circle cx={shipment.from.x} cy={shipment.from.y} r="1.2" fill="#1b6fff" />
                   </g>
 
-                  {/* TO pin */}
                   <g>
                     <circle cx={shipment.to.x} cy={shipment.to.y} r="2" fill={shipment.stage === 5 ? '#10b981' : '#1b6fff'} opacity="0.3">
                       <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
@@ -475,7 +366,6 @@ export default function TrackPage() {
                     <circle cx={shipment.to.x} cy={shipment.to.y} r="1.2" fill={shipment.stage === 5 ? '#10b981' : '#1b6fff'} />
                   </g>
 
-                  {/* CURRENT LOCATION pin (only if not delivered) */}
                   {shipment.stage < 5 && (
                     <g>
                       <circle cx={shipment.currentLocation.x} cy={shipment.currentLocation.y} r="3" fill={shipment.onHold ? '#DA291C' : '#1b6fff'} opacity="0.4">
@@ -487,7 +377,6 @@ export default function TrackPage() {
                     </g>
                   )}
 
-                  {/* Labels */}
                   <text x={shipment.from.x} y={shipment.from.y + 4.5} textAnchor="middle" fill="#a8b2ba" fontSize="2" fontWeight="bold">
                     {shipment.from.city.toUpperCase()}
                   </text>
@@ -501,7 +390,6 @@ export default function TrackPage() {
                   )}
                 </svg>
 
-                {/* Map legend */}
                 <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 text-xs backdrop-blur-md rounded-lg p-3" style={{
                   background: 'rgba(5,8,22,0.7)',
                   border: '1px solid rgba(59,130,246,0.2)',
@@ -591,10 +479,9 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* TRACKING HISTORY + DETAILS */}
+            {/* HISTORY + DETAILS */}
             <div className="grid md:grid-cols-[1.5fr_1fr] gap-6">
 
-              {/* HISTORY */}
               <div className="rounded-2xl p-6 md:p-8 backdrop-blur-xl"
                 style={{
                   background: 'rgba(16,24,39,0.82)',
@@ -637,7 +524,6 @@ export default function TrackPage() {
                 </div>
               </div>
 
-              {/* DETAILS */}
               <div className="space-y-6">
                 <div className="rounded-2xl p-6 backdrop-blur-xl"
                   style={{
@@ -758,7 +644,6 @@ export default function TrackPage() {
         </div>
       </footer>
 
-      {/* ANIMATIONS */}
       <style jsx>{`
         @keyframes scanX {
           0% { transform: translateX(-100%); }
