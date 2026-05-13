@@ -1,430 +1,539 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-
-const SC: Record<string, { stage: number; emoji: string; desc: string; label: string }> = {
-  "Booked": { stage: 0, emoji: "📋", desc: "Vault booked & sealed", label: "Booked" },
-  "Picked Up": { stage: 1, emoji: "📦", desc: "Picked up by verified operator", label: "Picked up" },
-  "In Transit": { stage: 2, emoji: "🚚", desc: "In transit — sealed and tracked", label: "In transit" },
-  "On Hold": { stage: 3, emoji: "⏸️", desc: "Held for verification", label: "On hold" },
-  "Out for Delivery": { stage: 4, emoji: "🏃", desc: "Out for final delivery", label: "Out for delivery" },
-  "Delivered": { stage: 5, emoji: "✅", desc: "Delivered to vault — biometric handoff complete", label: "Delivered" },
-};
-
-const DEMO_DATA: Record<string, any> = {
-  "VLT-7281-A4F9": {
-    status: "In Transit",
-    from: "New York, NY",
-    to: "Los Angeles, CA",
-    service: "Premium Vault",
-    sender: "Confidential",
-    receiver: "Authorized recipient",
-    weight: "2.5 kg",
-    eta: "May 12, 2026",
-    tracking: "VLT-7281-A4F9",
-    sha: "a4f9...82c1",
-    history: [
-      { status: "Booked", loc: "New York", time: "May 8, 9:15 AM", desc: "Sealed at origin" },
-      { status: "Picked Up", loc: "New York", time: "May 8, 2:30 PM", desc: "Operator verified" },
-      { status: "In Transit", loc: "Chicago hub", time: "May 11, 8:00 AM", desc: "Live signal · sealed" },
-    ],
-  },
-  "VLT-9912-04B7": {
-    status: "On Hold",
-    from: "London, UK",
-    to: "Frankfurt, DE",
-    service: "Premium Vault",
-    sender: "Confidential",
-    receiver: "Authorized recipient",
-    weight: "1.8 kg",
-    eta: "May 14, 2026",
-    tracking: "VLT-9912-04B7",
-    sha: "9b3d...41a7",
-    history: [
-      { status: "Booked", loc: "London", time: "May 10, 11:00 AM", desc: "" },
-      { status: "Picked Up", loc: "London", time: "May 10, 3:45 PM", desc: "" },
-      { status: "In Transit", loc: "EU corridor", time: "May 11, 7:00 AM", desc: "" },
-      { status: "On Hold", loc: "Frankfurt vault facility", time: "2 hr ago", desc: "Recipient verification required" },
-    ],
-  },
-  "VLT-5503-D8E2": {
-    status: "Delivered",
-    from: "Geneva, CH",
-    to: "Zurich, CH",
-    service: "Black Vault",
-    sender: "Confidential",
-    receiver: "Authorized recipient",
-    weight: "0.6 kg",
-    eta: "May 7, 2026",
-    tracking: "VLT-5503-D8E2",
-    sha: "d8e2...f01c",
-    history: [
-      { status: "Booked", loc: "Geneva", time: "May 6, 7:00 AM", desc: "" },
-      { status: "Picked Up", loc: "Geneva", time: "May 6, 9:30 AM", desc: "" },
-      { status: "In Transit", loc: "Alpine corridor", time: "May 6, 1:00 PM", desc: "" },
-      { status: "Out for Delivery", loc: "Zurich", time: "May 7, 8:00 AM", desc: "" },
-      { status: "Delivered", loc: "Zurich vault", time: "May 7, 11:30 AM", desc: "Biometric handoff complete" },
-    ],
-  },
-};
+import { useState } from 'react';
 
 export default function Home() {
-  const [trackingId, setTrackingId] = useState("");
-  const [shipment, setShipment] = useState<any>(null);
-  const [error, setError] = useState(false);
-
-  const handleTrack = () => {
-    setError(false);
-    const id = trackingId.trim().toUpperCase();
-    if (!id) return;
-    if (DEMO_DATA[id]) {
-      setShipment(DEMO_DATA[id]);
-      window.scrollTo({ top: document.getElementById("dashboard")?.offsetTop || 0, behavior: "smooth" });
-    } else {
-      setError(true);
-      setShipment(null);
-    }
-  };
-
-  const tryExample = (id: string) => {
-    setTrackingId(id);
-    setTimeout(() => {
-      setShipment(DEMO_DATA[id]);
-      setError(false);
-      window.scrollTo({ top: document.getElementById("dashboard")?.offsetTop || 0, behavior: "smooth" });
-    }, 50);
-  };
-
-  const currentStage = shipment ? SC[shipment.status]?.stage ?? 0 : 2;
+  const [hoveredService, setHoveredService] = useState<number | null>(null);
+  const [trackingInput, setTrackingInput] = useState('');
 
   return (
-    <main>
-      {/* HEADER */}
-      <header className="header">
-        <div className="header-left">
-          <div className="logo">
-            <div className="logo-icon">
-              <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            </div>
-            <span className="logo-name">Discreet Vault</span>
-          </div>
-          <nav className="nav">
-            <a href="#services">Services</a>
-            <a href="#security">Security</a>
-            <a href="#dashboard">Track</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#clients">Clients</a>
-          </nav>
+    <main className="min-h-screen bg-[var(--dark-bg)] text-[var(--text-primary)] overflow-hidden">
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          ANIMATED BACKGROUND LAYERS
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Animated grid */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,75,135,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(0,75,135,0.12)_1px,transparent_1px)] bg-[size:48px_48px] animate-[slide-grid_20s_linear_infinite]" />
         </div>
-        <div className="header-right">
-          <div className="encrypted-badge">
-            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span>Encrypted</span>
+        
+        {/* Floating orbs */}
+        <div className="absolute -top-40 left-20 w-[500px] h-[500px] rounded-full bg-[var(--navy)]/15 blur-[120px] animate-[float-slow_8s_ease-in-out_infinite]" />
+        <div className="absolute top-1/3 -right-40 w-[600px] h-[600px] rounded-full bg-[var(--red)]/10 blur-[140px] animate-[float-reverse_10s_ease-in-out_infinite]" />
+        <div className="absolute bottom-0 left-1/2 w-[400px] h-[400px] rounded-full bg-[var(--navy)]/8 blur-[100px]" />
+      </div>
+
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--dark-bg)]/85 backdrop-blur-xl">
+        <div className="container flex items-center justify-between py-4">
+          <a href="/" className="flex items-center gap-3 no-underline group">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[var(--navy)] to-[var(--red)] flex items-center justify-center shadow-[0_0_30px_rgba(0,75,135,0.35)] group-hover:shadow-[0_0_50px_rgba(218,41,28,0.4)] transition-all duration-300 group-hover:scale-110">
+              <span className="text-white font-black text-xl group-hover:rotate-12 transition-transform">◆</span>
+            </div>
+            <div>
+              <div className="font-display text-xl font-extrabold text-white leading-none">
+                Discreet Vault
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-[var(--red)] font-bold">
+                Logistics
+              </div>
+            </div>
+          </a>
+
+          <nav className="hidden md:flex items-center gap-8">
+            {['Services', 'Security', 'Process', 'Contact'].map((item, i) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase()}`}
+                className="text-sm text-[var(--text-secondary)] hover:text-[var(--red)] no-underline transition-all duration-300 relative group"
+              >
+                {item}
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[var(--red)] group-hover:w-full transition-all duration-300" />
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <a href="/track" className="btn btn-secondary hidden sm:inline-flex no-underline hover:shadow-[0_0_30px_rgba(0,75,135,0.35)]">
+              Track Package
+            </a>
+            <a href="/quote" className="btn btn-primary no-underline hover:shadow-[0_0_30px_rgba(218,41,28,0.4)]">
+              Request Quote
+            </a>
           </div>
-          <button className="btn btn-ghost">Sign in</button>
-          <button className="btn btn-primary">Request quote →</button>
         </div>
       </header>
 
-      {/* TRACK BAR */}
-      <div className="track-bar">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input
-          className="track-input"
-          type="text"
-          placeholder="Track your shipment — vault ID or reference number"
-          value={trackingId}
-          onChange={(e) => setTrackingId(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-        />
-        <span className="track-status">
-          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          End-to-end encrypted
-        </span>
-      </div>
-
       {/* HERO */}
-      <section className="hero">
-        <div className="hero-badge">
-          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-          SOC 2 certified · Chain of custody verified
-        </div>
-        <h1>Secure. Silent.<br /><span className="accent">Delivered.</span></h1>
-        <p>Premium logistics for high-value cargo and confidential shipments. Discretion at every checkpoint, visibility only for you.</p>
-        <div className="hero-cta">
-          <button className="btn-lg btn-primary" onClick={() => tryExample("VLT-7281-A4F9")}>Request a vault →</button>
-          <button className="btn-lg btn-outline">How it works</button>
-        </div>
-      </section>
-
-      {/* TRUSTED BY */}
-      <section className="trusted" id="clients">
-        <div className="trusted-label">Trusted by discreet operators worldwide</div>
-        <div className="trusted-logos">
-          <span className="trusted-logo">Aurum & Co.</span>
-          <span className="trusted-logo">Helix Holdings</span>
-          <span className="trusted-logo">Meridian Trust</span>
-          <span className="trusted-logo">Onyx Group</span>
-          <span className="trusted-logo">Sterling House</span>
-          <span className="trusted-logo">Vanguard Estates</span>
-        </div>
-      </section>
-
-      {/* DASHBOARD */}
-      <section className="section" id="dashboard">
-        <div className="section-header">
-          <div className="section-eyebrow">Vault tracking</div>
-          <h2>Real-time visibility, total discretion.</h2>
-          <p>Every shipment, every checkpoint, every signal — encrypted and visible only to you.</p>
-        </div>
-
-        {error && (
-          <div style={{ textAlign: "center", padding: "16px", background: "#fee2e2", color: "#b91c1c", borderRadius: 10, marginBottom: 20, fontSize: 13 }}>
-            ❌ Vault ID not found. Try one of the demo IDs below.
-          </div>
-        )}
-
-        {!shipment && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-            <button className="btn btn-outline" onClick={() => tryExample("VLT-7281-A4F9")}>Try VLT-7281-A4F9</button>
-            <button className="btn btn-outline" onClick={() => tryExample("VLT-9912-04B7")}>Try VLT-9912-04B7 (On Hold)</button>
-            <button className="btn btn-outline" onClick={() => tryExample("VLT-5503-D8E2")}>Try VLT-5503-D8E2 (Delivered)</button>
-          </div>
-        )}
-
-        <div className="dashboard">
-          <div className="kpi-grid">
-            <div className="kpi"><div className="kpi-label">Active vaults</div><div className="kpi-value">247</div></div>
-            <div className="kpi"><div className="kpi-label">On time</div><div className="kpi-value success">99.4%</div></div>
-            <div className="kpi"><div className="kpi-label">On hold</div><div className="kpi-value warning">5</div></div>
-            <div className="kpi"><div className="kpi-label">Sealed</div><div className="kpi-value">98</div></div>
-            <div className="kpi"><div className="kpi-label">Delivered</div><div className="kpi-value">1,842</div></div>
-          </div>
-
-          <div className="tracking-grid">
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">{shipment?.tracking || "VLT-7281-A4F9"}</span>
-                <span className="card-status">Live · Sealed</span>
+      <section className="relative min-h-[92vh] flex items-center py-24 lg:py-32">
+        <div className="container relative z-10 w-full">
+          <div className="grid lg:grid-cols-[1.08fr_0.92fr] gap-20 items-center">
+            {/* LEFT: Content with breathing room */}
+            <div className="space-y-10 animate-fade-in-up">
+              <div className="badge badge-navy inline-block animate-slide-in-right" style={{ animationDelay: '100ms' }}>
+                Private Tracking • Secure Custody • Verified Delivery
               </div>
-              <svg className="route-map" viewBox="0 0 380 180">
-                <rect width="380" height="180" fill="#EEF2F7" rx="4"/>
-                <path d="M 0 50 Q 80 30 160 60 T 380 40" stroke="#C5D5E5" strokeWidth="0.5" fill="none"/>
-                <path d="M 0 100 Q 100 80 200 110 T 380 90" stroke="#C5D5E5" strokeWidth="0.5" fill="none"/>
-                <path d="M 50 150 Q 130 80 210 120 T 330 50" stroke="#004B87" strokeWidth="2" fill="none" strokeDasharray="4 3"/>
-                <circle cx="50" cy="150" r="5" fill="#047857"/>
-                <text x="60" y="154" fontSize="10" fill="#0A1F3D" fontWeight="500">Origin</text>
-                <circle cx="210" cy="120" r="6" fill="#DA291C"/>
-                <circle cx="210" cy="120" r="11" fill="#DA291C" opacity="0.2">
-                  <animate attributeName="r" values="9;15;9" dur="2.5s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.4;0.1;0.4" dur="2.5s" repeatCount="indefinite"/>
-                </circle>
-                <text x="222" y="124" fontSize="10" fill="#0A1F3D" fontWeight="500">Sealed · In transit</text>
-                <circle cx="330" cy="50" r="5" fill="#7A8AA0"/>
-                <text x="280" y="40" fontSize="10" fill="#0A1F3D" fontWeight="500">Destination</text>
-              </svg>
-              <div className="encryption-note">SHA: {shipment?.sha || "a4f9...82c1"} · Encrypted</div>
+
+              <div className="space-y-6">
+                <h1 className="max-w-5xl leading-[1.15] tracking-tight animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                  Secure logistics for
+                  <br />
+                  high-value deliveries.
+                  <br />
+                  <span className="bg-gradient-to-r from-[var(--red)] via-[var(--red-light)] to-[var(--red)] bg-clip-text text-transparent inline-block animate-pulse">
+                    Built for discretion.
+                  </span>
+                </h1>
+
+                <p className="text-xl text-[var(--text-secondary)] max-w-xl leading-relaxed animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                  Discreet Vault Logistics gives clients a private, professional way
+                  to monitor sensitive shipments, verify custody milestones, and
+                  request secure delivery support with complete peace of mind.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                <a href="/track" className="btn btn-primary no-underline text-lg px-9 py-4 hover:shadow-[0_0_40px_rgba(218,41,28,0.5)] hover:scale-105 transition-all duration-300">
+                  Track Package Now →
+                </a>
+                <a href="/quote" className="btn btn-outline no-underline text-lg px-9 py-4 hover:bg-[var(--red)]/20 transition-all duration-300">
+                  Request Secure Quote
+                </a>
+              </div>
+
+              {/* Stats with better visual hierarchy */}
+              <div className="grid grid-cols-3 gap-6 pt-8 max-w-2xl animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+                {[
+                  { value: '24/7', label: 'Visibility', icon: '👁️' },
+                  { value: '100%', label: 'Custody Logs', icon: '🔐' },
+                  { value: 'Secure', label: 'Workflow', icon: '✓' },
+                ].map((stat, i) => (
+                  <div
+                    key={stat.label}
+                    className="group rounded-xl border border-[var(--border)] bg-[var(--card-bg)]/50 backdrop-blur p-4 hover:border-[var(--red)] hover:bg-[var(--card-bg)]/80 transition-all duration-300 hover:shadow-[0_0_20px_rgba(218,41,28,0.15)]"
+                    style={{ animationDelay: `${600 + i * 100}ms` }}
+                  >
+                    <div className="text-3xl mb-2 group-hover:scale-125 transition-transform">{stat.icon}</div>
+                    <div className="font-display text-xl font-extrabold text-white group-hover:text-[var(--red)] transition-colors">{stat.value}</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--text-muted)]">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="card">
-              <div className="timeline-title">Custody chain</div>
-              {[
-                { label: "Booked & sealed", meta: shipment?.history?.find((h:any) => h.status === "Booked")?.time || "May 8, 9:15 AM" },
-                { label: "Picked up", meta: shipment?.history?.find((h:any) => h.status === "Picked Up")?.time || "May 8, 2:30 PM" },
-                { label: "In transit", meta: shipment?.history?.find((h:any) => h.status === "In Transit")?.loc || "Live · sealed" },
-                { label: "On hold", meta: shipment?.history?.find((h:any) => h.status === "On Hold")?.desc || "If verification needed", isHold: true },
-                { label: "Out for delivery", meta: shipment?.history?.find((h:any) => h.status === "Out for Delivery")?.time || "Pending" },
-                { label: "Delivered", meta: shipment?.history?.find((h:any) => h.status === "Delivered")?.desc || "Biometric handoff" },
-              ].map((step, i) => {
-                const isDone = i < currentStage;
-                const isActive = i === currentStage;
-                const isLast = i === 5;
-                let dotClass = "pending";
-                if (isDone) dotClass = "done";
-                else if (isActive && step.isHold) dotClass = "hold";
-                else if (isActive) dotClass = "active";
+            {/* RIGHT: Enhanced tracking preview */}
+            <div className="relative animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+              <div className="absolute -inset-8 rounded-[32px] bg-gradient-to-br from-[var(--navy)]/30 via-transparent to-[var(--red)]/15 blur-3xl animate-pulse" />
 
-                return (
-                  <div key={i} className="timeline-item">
-                    <div className="timeline-marker">
-                      <div className={`timeline-dot ${dotClass}`}>
-                        {isDone && <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
-                        {isActive && !step.isHold && <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>}
-                        {isActive && step.isHold && <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>}
-                      </div>
-                      {!isLast && <div className="timeline-line"></div>}
+              <div className="relative rounded-[28px] border border-[var(--border)] bg-[rgba(15,20,25,0.95)] backdrop-blur-2xl shadow-[0_40px_120px_rgba(0,0,0,0.6)] overflow-hidden hover:border-[var(--red)]/50 transition-all duration-500 group">
+                {/* Animated top accent */}
+                <div className="h-1.5 bg-gradient-to-r from-transparent via-[var(--red)] to-transparent animate-[pulse_3s_ease-in-out_infinite]" />
+
+                {/* Top right glow */}
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[var(--red)]/20 blur-2xl group-hover:bg-[var(--red)]/30 transition-all duration-500" />
+
+                <div className="relative p-8 space-y-8">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-display font-bold mb-2">Secure Tracking Console</h3>
+                      <p className="text-sm text-[var(--text-muted)]">Shipment DV-9042-LA</p>
                     </div>
-                    <div className="timeline-content">
-                      <div className={`timeline-status ${isActive && step.isHold ? "warn" : ""} ${!isDone && !isActive ? "muted" : ""}`}>{step.label}</div>
-                      <div className="timeline-meta">{step.meta}</div>
+                    <div className="flex gap-2">
+                      <span className="badge badge-success text-xs">Live</span>
+                      <div className="h-3 w-3 rounded-full bg-[var(--success)] shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* ON HOLD ALERT */}
-          <div className="alert-card">
-            <div className="alert-header">
-              <div className="alert-title">
-                <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>VLT-9912-04B7 · On hold</span>
-                <span className="alert-tag">Customs</span>
+                  {/* Progress section with enhanced visuals */}
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--black)]/40 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[var(--text-muted)] font-medium">Current Status</span>
+                      <span className="badge badge-red text-xs font-bold">In Secure Transit</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="h-2.5 rounded-full bg-[var(--border)] overflow-hidden">
+                        <div className="h-full w-[68%] bg-gradient-to-r from-[var(--navy)] via-[var(--red)] to-[var(--red-light)] shadow-[0_0_20px_rgba(218,41,28,0.4)] animate-[slide-progress_3s_ease-in-out_infinite]" />
+                      </div>
+                      <div className="flex justify-between text-xs text-[var(--text-muted)]">
+                        <span>Origin</span>
+                        <span>Destination</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      {[
+                        { label: 'ETA', value: 'Today', icon: '⏱️' },
+                        { label: 'Route', value: 'LA', icon: '📍' },
+                        { label: 'Alerts', value: '0', icon: '🔔' },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-xl bg-[var(--dark-bg)]/60 border border-[var(--border)] p-3 hover:border-[var(--red)]/30 transition-colors">
+                          <div className="text-lg mb-1">{item.icon}</div>
+                          <div className="text-xs text-[var(--text-muted)] mb-1">{item.label}</div>
+                          <div className="font-bold text-white text-sm">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Timeline with enhanced visuals */}
+                  <div className="space-y-4 border-t border-[var(--border)] pt-6">
+                    {[
+                      { title: 'Shipment created', text: 'Verified by operations', done: true },
+                      { title: 'Custody accepted', text: 'Secure handling confirmed', done: true },
+                      { title: 'In transit', text: 'Live route visibility active', done: true },
+                    ].map(({ title, text, done }, i) => (
+                      <div key={title} className="flex gap-4 group">
+                        <div className="flex flex-col items-center">
+                          <div className={`h-3.5 w-3.5 rounded-full border-2 transition-all ${
+                            done
+                              ? 'bg-[var(--red)] border-[var(--red)] shadow-[0_0_18px_rgba(218,41,28,0.6)]'
+                              : 'border-[var(--border)]'
+                          }`} />
+                          {i < 2 && <div className="h-10 w-px bg-[var(--border)] mt-2 group-hover:bg-[var(--red)]/30 transition-colors" />}
+                        </div>
+                        <div className="py-0.5">
+                          <div className="text-sm font-bold text-white group-hover:text-[var(--red)] transition-colors">{title}</div>
+                          <div className="text-xs text-[var(--text-muted)]">{text}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <span className="alert-time">2 hr ago</span>
-            </div>
-            <div className="alert-desc">Recipient verification required at Frankfurt vault facility.</div>
-            <div className="alert-actions">
-              <button className="btn-sm btn-primary">Authorize release</button>
-              <button className="btn-sm btn-outline">Secure message</button>
             </div>
           </div>
 
-          <div className="custody-bar">
-            <div className="custody-bar-left">
-              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              <span>Chain of custody · 247 vaults verified</span>
-            </div>
-            <span className="custody-bar-link">View ledger →</span>
-          </div>
-        </div>
-      </section>
+          {/* BIG TRACK BAR - Enhanced */}
+          <div className="relative mt-20 rounded-[28px] border border-[var(--red)]/40 bg-gradient-to-r from-[var(--card-bg)]/60 via-[var(--card-bg)]/40 to-[rgba(218,41,28,0.1)] p-8 md:p-12 shadow-[0_0_60px_rgba(218,41,28,0.15)] hover:shadow-[0_0_80px_rgba(218,41,28,0.25)] transition-all duration-500 overflow-hidden group animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+            {/* Glow effect */}
+            <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-[var(--red)]/15 blur-3xl group-hover:bg-[var(--red)]/25 transition-all duration-500" />
 
-      {/* FEATURES */}
-      <section className="section" id="security">
-        <div className="section-header">
-          <h2>Built for what you can&apos;t afford to lose.</h2>
-        </div>
-        <div className="features">
-          <div className="feature">
-            <div className="feature-icon">
-              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <h3>Sealed vault transport</h3>
-            <p>Tamper-evident containers with biometric access logs and 24/7 GPS lockdown.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">
-              <svg viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-            </div>
-            <h3>Total discretion</h3>
-            <p>No external markings. No public manifests. Tracking visible only to authorized parties.</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">
-              <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            </div>
-            <h3>Verified chain of custody</h3>
-            <p>Cryptographic handoff logs from origin to vault. Immutable, audit-ready.</p>
-          </div>
-        </div>
-      </section>
+            <div className="relative z-10 grid md:grid-cols-[1fr_auto] gap-8 items-center">
+              <div className="space-y-4">
+                <div className="text-sm uppercase tracking-[0.22em] text-[var(--red-light)] font-bold">
+                  Looking for a shipment?
+                </div>
+                <h2 className="text-3xl md:text-4xl font-display font-black leading-tight">
+                  Track your package in the secure portal.
+                </h2>
+                <p className="text-[var(--text-secondary)] mb-0 text-lg">
+                  Use your tracking reference to view shipment status, custody updates,
+                  delivery progress, and important alerts instantly.
+                </p>
+              </div>
 
-      {/* TESTIMONIAL */}
-      <section className="testimonial-section">
-        <div className="testimonial">
-          <svg className="quote-icon" viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
-          <blockquote>&ldquo;We&apos;ve moved high-value assets across 14 countries with Discreet Vault. Zero leaks, zero losses, zero noise.&rdquo;</blockquote>
-          <div className="testimonial-author">
-            <div className="author-avatar">MR</div>
-            <div className="author-info">
-              <div className="author-name">M. Rosenthal</div>
-              <div className="author-role">Head of Asset Security · Sterling House</div>
+              <a href="/track" className="btn btn-primary no-underline text-lg px-10 py-5 whitespace-nowrap hover:shadow-[0_0_40px_rgba(218,41,28,0.5)] hover:scale-110 transition-all duration-300">
+                Open Portal →
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PRICING */}
-      <section className="section" id="pricing">
-        <div className="section-header">
-          <h2>Service tiers.</h2>
-          <p>Every tier ships with end-to-end encryption.</p>
-        </div>
-        <div className="pricing-grid">
-          <div className="pricing-card">
-            <div className="pricing-name">Standard Vault</div>
-            <div className="pricing-amount">$299<span className="small">/shipment</span></div>
-            <div className="pricing-desc">Sealed transport · 48hr delivery</div>
-            <button className="pricing-btn btn-outline">Request quote</button>
-          </div>
-          <div className="pricing-card featured">
-            <div className="pricing-badge">Most requested</div>
-            <div className="pricing-name">Premium Vault</div>
-            <div className="pricing-amount">$799<span className="small">/shipment</span></div>
-            <div className="pricing-desc">24hr · Armed escort · Insured to $1M</div>
-            <button className="pricing-btn btn-primary">Request quote</button>
-          </div>
-          <div className="pricing-card">
-            <div className="pricing-name">Black Vault</div>
-            <div className="pricing-amount">By invitation</div>
-            <div className="pricing-desc">Custom · Diplomatic-tier handling</div>
-            <button className="pricing-btn btn-outline">Apply</button>
+      {/* TRUST BAR - Enhanced */}
+      <section className="border-y border-[var(--border)] bg-gradient-to-r from-[var(--navy)]/5 via-transparent to-[var(--red)]/5">
+        <div className="container py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { label: 'Encrypted', value: 'Client Access', icon: '🔒' },
+              { label: 'Verified', value: 'Custody Chain', icon: '✓' },
+              { label: 'Secure', value: 'Delivery Workflow', icon: '🛡️' },
+              { label: 'Private', value: 'Status Updates', icon: '📧' },
+            ].map((item) => (
+              <div key={item.label} className="group text-center space-y-3 hover:scale-110 transition-transform duration-300">
+                <div className="text-4xl group-hover:scale-150 transition-transform duration-300">{item.icon}</div>
+                <div>
+                  <div className="text-sm font-bold uppercase tracking-wider text-[var(--red)] group-hover:text-[var(--red-light)]">{item.label}</div>
+                  <div className="text-sm text-[var(--text-secondary)]">{item.value}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="cta-section">
-        <h2>When it has to arrive — <span className="accent">and stay quiet.</span></h2>
-        <p>Vetted operators. Sealed routes. Total visibility for you, none for anyone else.</p>
-        <div className="cta-buttons">
-          <button className="btn-lg btn-light">Request a vault →</button>
-          <button className="btn-lg btn-dark-outline">Speak to security</button>
+      {/* SERVICES - Major upgrade */}
+      <section id="services" className="section">
+        <div className="container">
+          <div className="max-w-3xl mb-16 animate-fade-in-up">
+            <div className="badge badge-red mb-4">Core Services</div>
+            <h2 className="text-5xl md:text-6xl mb-6">Built for sensitive, private, high-value logistics.</h2>
+            <p className="text-xl text-[var(--text-secondary)] leading-relaxed">
+              A clean logistics experience for clients who need clear tracking,
+              professional handling, and verified shipment milestones.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                num: '01',
+                title: 'Secure Package Tracking',
+                text: 'A dedicated tracking portal for shipment status, custody events, and delivery progress.',
+                icon: '📦',
+                color: 'from-[var(--navy)]',
+              },
+              {
+                num: '02',
+                title: 'Discreet Delivery Support',
+                text: 'Professional logistics workflow focused on privacy, reliability, and controlled communication.',
+                icon: '🤝',
+                color: 'from-[var(--red)]',
+              },
+              {
+                num: '03',
+                title: 'Verified Custody Updates',
+                text: 'Milestone-based shipment records that help clients see where the delivery stands.',
+                icon: '✓',
+                color: 'from-[var(--navy)]',
+              },
+            ].map((service, i) => (
+              <div
+                key={service.title}
+                className="group relative animate-fade-in-up"
+                style={{ animationDelay: `${i * 100}ms` }}
+                onMouseEnter={() => setHoveredService(i)}
+                onMouseLeave={() => setHoveredService(null)}
+              >
+                {/* Hover glow */}
+                {hoveredService === i && (
+                  <div className="absolute -inset-4 rounded-2xl bg-gradient-to-br from-[var(--red)]/20 to-transparent blur-2xl" />
+                )}
+
+                <div className="relative card border-[var(--border)] hover:border-[var(--red)]/60 hover:shadow-[0_20px_60px_rgba(218,41,28,0.2)] transition-all duration-500 group-hover:translate-y-[-8px]">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="text-5xl font-display font-black bg-gradient-to-br from-[var(--red)]/80 to-[var(--red-light)] bg-clip-text text-transparent group-hover:from-[var(--red)] group-hover:to-[var(--red-light)] transition-all">
+                      {service.num}
+                    </div>
+                    <div className="text-4xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-300">{service.icon}</div>
+                  </div>
+                  <h4 className="font-display text-2xl font-bold mb-3 text-white group-hover:text-[var(--red)] transition-colors">
+                    {service.title}
+                  </h4>
+                  <p className="text-[var(--text-secondary)] mb-0 leading-relaxed">{service.text}</p>
+
+                  {/* Bottom accent */}
+                  <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[var(--red)] to-[var(--red-light)] w-0 group-hover:w-full transition-all duration-500" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECURITY SECTION */}
+      <section id="security" className="section bg-gradient-to-b from-[var(--black)]/20 to-transparent border-y border-[var(--border)]">
+        <div className="container">
+          <div className="grid md:grid-cols-2 gap-16 items-center animate-fade-in-up">
+            <div className="space-y-6">
+              <div className="badge badge-navy">Security First</div>
+              <h2 className="text-5xl md:text-6xl font-display font-black leading-tight">
+                Private shipment visibility without unnecessary exposure.
+              </h2>
+              <p className="text-xl text-[var(--text-secondary)] leading-relaxed">
+                Discreet Vault keeps the client experience simple: request service,
+                receive a tracking reference, and monitor key delivery milestones
+                from a dedicated tracking page with peace of mind.
+              </p>
+            </div>
+
+            <div className="card border-[var(--navy)]/50 bg-gradient-to-br from-[var(--card-bg)] to-[var(--card-bg)]/50">
+              {[
+                { item: 'Clear client tracking entry point', icon: '🔑' },
+                { item: 'Status-first shipment layout', icon: '📊' },
+                { item: 'Custody chain presentation', icon: '⛓️' },
+                { item: 'Alert-ready delivery interface', icon: '🚨' },
+              ].map(({ item, icon }) => (
+                <div key={item} className="flex items-center gap-4 py-5 border-b border-[var(--border)] last:border-b-0 group hover:bg-[var(--navy)]/10 px-4 mx-[-1.25rem] px-[1.25rem] transition-colors rounded">
+                  <span className="text-2xl group-hover:scale-125 transition-transform">{icon}</span>
+                  <span className="font-semibold text-white group-hover:text-[var(--red)] transition-colors">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROCESS - Enhanced with visual connectors */}
+      <section id="process" className="section">
+        <div className="container">
+          <div className="max-w-3xl mx-auto text-center mb-16 animate-fade-in-up">
+            <div className="badge badge-red mb-4">Simple Process</div>
+            <h2 className="text-5xl md:text-6xl mb-6">Request. Verify. Track.</h2>
+            <p className="text-xl text-[var(--text-secondary)]">
+              The homepage stays clean. The tracking system gets its own dedicated
+              portal so clients can find it instantly with complete clarity.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connecting lines - desktop only */}
+            <div className="hidden md:block absolute top-24 left-1/3 right-1/3 h-1 bg-gradient-to-r from-transparent via-[var(--red)]/30 to-transparent" />
+
+            {[
+              { num: '01', title: 'Request Service', text: 'Submit shipment details through the quote page with full info.', icon: '📝' },
+              { num: '02', title: 'Receive Tracking', text: 'A private tracking reference is assigned immediately.', icon: '🎟️' },
+              { num: '03', title: 'Monitor Delivery', text: 'Client opens the tracking portal for live updates.', icon: '👁️' },
+            ].map(({ num, title, text, icon }, i) => (
+              <div
+                key={title}
+                className="relative animate-fade-in-up group"
+                style={{ animationDelay: `${i * 150}ms` }}
+              >
+                {/* Card glow */}
+                <div className="absolute -inset-4 rounded-2xl bg-gradient-to-br from-[var(--red)]/10 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                <div className="relative card text-center border-[var(--border)] hover:border-[var(--red)]/60 transition-all duration-500 group-hover:translate-y-[-8px]">
+                  {/* Top accent */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-0 bg-gradient-to-r from-[var(--red)] to-[var(--red-light)] group-hover:w-full transition-all duration-500" />
+
+                  <div className="text-6xl font-display font-black bg-gradient-to-br from-[var(--red)] to-[var(--red-light)] bg-clip-text text-transparent mb-4 group-hover:scale-110 transition-transform">
+                    {num}
+                  </div>
+
+                  <div className="text-3xl mb-4 group-hover:scale-125 group-hover:rotate-12 transition-all">{icon}</div>
+
+                  <h4 className="font-display text-2xl font-bold mb-3 text-white group-hover:text-[var(--red)] transition-colors">
+                    {title}
+                  </h4>
+                  <p className="text-[var(--text-secondary)] mb-0 text-sm leading-relaxed">{text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA - Maximum impact */}
+      <section id="contact" className="section">
+        <div className="container">
+          <div className="relative rounded-[32px] border border-[var(--border)] bg-gradient-to-br from-[var(--card-bg)] via-[var(--card-bg)]/80 to-[rgba(0,75,135,0.2)] p-12 md:p-16 text-center overflow-hidden group animate-fade-in-up hover:border-[var(--red)]/60 transition-all duration-500">
+            {/* Multiple glow layers */}
+            <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-[var(--red)]/20 blur-3xl group-hover:bg-[var(--red)]/30 transition-all duration-500" />
+            <div className="absolute -bottom-40 right-10 h-60 w-60 rounded-full bg-[var(--navy)]/15 blur-3xl group-hover:bg-[var(--navy)]/25 transition-all duration-500" />
+
+            <div className="relative z-10 max-w-3xl mx-auto">
+              <h2 className="text-5xl md:text-6xl mb-6 group-hover:text-[var(--red)] transition-colors">
+                Ready to move with confidence?
+              </h2>
+              <p className="text-xl text-[var(--text-secondary)] mb-10">
+                Track an existing package or request secure logistics support.
+                Everything you need to manage high-value deliveries.
+              </p>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-5">
+                <a
+                  href="/track"
+                  className="btn btn-primary no-underline text-lg px-10 py-5 hover:shadow-[0_0_50px_rgba(218,41,28,0.5)] hover:scale-110 transition-all duration-300"
+                >
+                  Track Package →
+                </a>
+                <a
+                  href="/quote"
+                  className="btn btn-outline no-underline text-lg px-10 py-5 hover:bg-[var(--red)]/20 hover:border-[var(--red)] transition-all duration-300"
+                >
+                  Request Quote
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="footer">
-        <div className="footer-grid">
-          <div>
-            <div className="logo">
-              <div className="logo-icon">
-                <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-              </div>
-              <span className="logo-name">Discreet Vault</span>
-            </div>
-            <p className="footer-brand-tag">Premium logistics for cargo that demands silence and certainty.</p>
-            <div className="footer-social">
-              <svg viewBox="0 0 24 24"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></svg>
-              <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-              <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-          </div>
-          <div className="footer-col">
-            <h4>Services</h4>
-            <ul>
-              <li>Standard Vault</li><li>Premium Vault</li><li>Black Vault</li><li>International</li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Security</h4>
-            <ul>
-              <li>Encryption</li><li>Compliance</li><li>SOC 2 report</li><li>Custody ledger</li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Company</h4>
-            <ul>
-              <li>About</li><li>Operators</li><li>Press</li><li>Contact</li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Legal</h4>
-            <ul>
-              <li>Privacy</li><li>Terms</li><li>NDA framework</li><li>DPA</li>
-            </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <div className="footer-copy">© 2026 Discreet Vault Logistics. All rights reserved.</div>
-          <div className="footer-status">
-            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Encrypted · SOC 2 verified
+      <footer className="border-t border-[var(--border)] py-12 bg-gradient-to-b from-transparent to-[var(--black)]/40">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-6">
+          <p className="text-sm text-[var(--text-muted)] mb-0">
+            © 2026 Discreet Vault Logistics. Secure private logistics platform.
+          </p>
+
+          <div className="flex gap-8">
+            {[
+              { label: 'Privacy', href: '/privacy' },
+              { label: 'Terms', href: '/terms' },
+              { label: 'Contact', href: '/contact' },
+            ].map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                className="text-sm text-[var(--text-muted)] hover:text-[var(--red)] no-underline transition-colors relative group"
+              >
+                {label}
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[var(--red)] group-hover:w-full transition-all duration-300" />
+              </a>
+            ))}
           </div>
         </div>
       </footer>
+
+      {/* ANIMATIONS */}
+      <style jsx>{`
+        @keyframes slide-grid {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(48px, 48px); }
+        }
+
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(60px); }
+        }
+
+        @keyframes float-reverse {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-40px); }
+        }
+
+        @keyframes slide-progress {
+          0%, 100% { width: 68%; }
+          50% { width: 75%; }
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out forwards;
+          opacity: 0;
+        }
+
+        .animate-slide-in-right {
+          animation: slide-in-right 0.8s ease-out forwards;
+        }
+
+        .animate-slide-grid {
+          animation: slide-grid 20s linear infinite;
+        }
+
+        .animate-float-slow {
+          animation: float-slow 8s ease-in-out infinite;
+        }
+      `}</style>
     </main>
   );
 }
