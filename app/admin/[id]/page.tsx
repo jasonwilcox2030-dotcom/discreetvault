@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase, US_CITIES, SERVICE_TIERS, STATUS_OPTIONS } from '@/lib/supabase';
 import {
   Shield, ArrowLeft, Save, Trash2, AlertTriangle, Plus,
-  MapPin, Package, Clock, CheckCircle2, X
+  MapPin, Package, Clock, X, Send, User
 } from 'lucide-react';
 
 export default function EditShipment() {
@@ -77,10 +77,18 @@ export default function EditShipment() {
       on_hold: shipment.on_hold,
       on_hold_reason: shipment.on_hold ? shipment.on_hold_reason : null,
       eta: shipment.eta,
+      // Sender
+      sender_name: shipment.sender_name,
+      sender_email: shipment.sender_email,
+      sender_phone: shipment.sender_phone,
+      sender_street: shipment.sender_street,
+      // Receiver
       client_name: shipment.client_name,
       client_email: shipment.client_email,
       client_phone: shipment.client_phone,
       client_notes: shipment.client_notes,
+      to_street: shipment.to_street,
+      from_street: shipment.from_street,
       weight: shipment.weight,
       service: shipment.service,
       updated_at: new Date().toISOString(),
@@ -156,6 +164,12 @@ export default function EditShipment() {
     router.push('/admin');
   };
 
+  const inputStyle = {
+    background: 'rgba(5,8,22,0.5)',
+    border: '1px solid rgba(59,130,246,0.3)',
+    color: '#ffffff',
+  };
+
   if (!authed) return null;
   if (loading) return (
     <main className="min-h-screen flex items-center justify-center" style={{ background: '#050816', color: '#a8b2ba' }}>
@@ -177,19 +191,14 @@ export default function EditShipment() {
 
       <header className="relative z-50 border-b backdrop-blur-xl" style={{ borderColor: 'rgba(59,130,246,0.18)', background: 'rgba(5,8,22,0.85)' }}>
         <div className="flex items-center justify-between py-4 px-6 max-w-5xl mx-auto">
-          <button
-            onClick={() => router.push('/admin')}
-            className="flex items-center gap-2 text-sm font-bold transition-all hover:scale-105"
-            style={{ color: '#1b6fff' }}>
+          <button onClick={() => router.push('/admin')}
+            className="flex items-center gap-2 text-sm font-bold transition-all hover:scale-105" style={{ color: '#1b6fff' }}>
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </button>
 
           <div className="h-10 w-10 rounded-xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, #005fcc, #DA291C)',
-              boxShadow: '0 0 25px rgba(27,111,255,0.4)',
-            }}>
+            style={{ background: 'linear-gradient(135deg, #005fcc, #DA291C)', boxShadow: '0 0 25px rgba(27,111,255,0.4)' }}>
             <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
         </div>
@@ -197,31 +206,24 @@ export default function EditShipment() {
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-8">
         <div className="mb-6">
-          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-2" style={{ color: '#1b6fff' }}>
-            Tracking Number
-          </div>
-          <div className="font-mono text-sm md:text-base mb-2 break-all" style={{ color: '#a8b2ba' }}>
-            {shipment.tracking_number}
-          </div>
+          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-2" style={{ color: '#1b6fff' }}>Tracking Number</div>
+          <div className="font-mono text-sm md:text-base mb-2 break-all" style={{ color: '#a8b2ba' }}>{shipment.tracking_number}</div>
           <h1 className="text-3xl md:text-4xl font-black">{shipment.client_name}</h1>
         </div>
 
         {success && (
           <div className="rounded-xl p-4 mb-6 text-sm" style={{
-            background: 'rgba(16,185,129,0.1)',
-            border: '1px solid rgba(16,185,129,0.3)',
-            color: '#10b981',
+            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
           }}>✓ {success}</div>
         )}
 
         {error && (
           <div className="rounded-xl p-4 mb-6 text-sm" style={{
-            background: 'rgba(218,41,28,0.1)',
-            border: '1px solid rgba(218,41,28,0.3)',
-            color: '#e84a38',
+            background: 'rgba(218,41,28,0.1)', border: '1px solid rgba(218,41,28,0.3)', color: '#e84a38',
           }}>{error}</div>
         )}
 
+        {/* STATUS CONTROL */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
           style={{
             background: 'rgba(16,24,39,0.82)',
@@ -235,22 +237,14 @@ export default function EditShipment() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Current Status
-              </label>
-              <select
-                value={shipment.stage}
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Current Status</label>
+              <select value={shipment.stage}
                 onChange={(e) => {
                   const stage = parseInt(e.target.value);
                   const opt = STATUS_OPTIONS.find((s) => s.stage === stage);
                   setShipment({ ...shipment, stage, status: opt?.label || shipment.status });
                 }}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}>
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s.stage} value={s.stage}>{s.stage}. {s.label}</option>
                 ))}
@@ -258,20 +252,10 @@ export default function EditShipment() {
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Expected Delivery
-              </label>
-              <input
-                type="text"
-                value={shipment.eta || ''}
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Expected Delivery</label>
+              <input type="text" value={shipment.eta || ''}
                 onChange={(e) => setShipment({ ...shipment, eta: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
           </div>
 
@@ -280,12 +264,8 @@ export default function EditShipment() {
             border: '1px solid ' + (shipment.on_hold ? 'rgba(218,41,28,0.3)' : 'rgba(59,130,246,0.2)'),
           }}>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={shipment.on_hold || false}
-                onChange={(e) => setShipment({ ...shipment, on_hold: e.target.checked })}
-                className="w-5 h-5"
-              />
+              <input type="checkbox" checked={shipment.on_hold || false}
+                onChange={(e) => setShipment({ ...shipment, on_hold: e.target.checked })} className="w-5 h-5" />
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" style={{ color: shipment.on_hold ? '#DA291C' : '#6d7580' }} />
                 <span className="font-bold text-sm">Mark shipment as ON HOLD</span>
@@ -294,197 +274,135 @@ export default function EditShipment() {
 
             {shipment.on_hold && (
               <div className="mt-4">
-                <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#DA291C' }}>
-                  Reason for Hold
-                </label>
-                <textarea
-                  value={shipment.on_hold_reason || ''}
+                <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#DA291C' }}>Reason for Hold</label>
+                <textarea value={shipment.on_hold_reason || ''}
                   onChange={(e) => setShipment({ ...shipment, on_hold_reason: e.target.value })}
-                  placeholder="Customs verification required..."
-                  rows={2}
+                  placeholder="Customs verification required..." rows={2}
                   className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{
-                    background: 'rgba(5,8,22,0.5)',
-                    border: '1px solid rgba(218,41,28,0.3)',
-                    color: '#ffffff',
-                  }}
-                />
+                  style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(218,41,28,0.3)', color: '#ffffff' }} />
               </div>
             )}
           </div>
         </div>
 
+        {/* CURRENT LOCATION */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
             <MapPin className="w-3 h-3" />
             Current Location (shows on map)
           </div>
 
-          <select
-            value={shipment.current_city || ''}
+          <select value={shipment.current_city || ''}
             onChange={(e) => setShipment({ ...shipment, current_city: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{
-              background: 'rgba(5,8,22,0.5)',
-              border: '1px solid rgba(59,130,246,0.3)',
-              color: '#ffffff',
-            }}>
+            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
             <option value="">Select current location...</option>
             {US_CITIES.map((c) => (
-              <option key={`${c.city}-${c.state}`} value={c.city}>
-                {c.city}, {c.state}
-              </option>
+              <option key={`${c.city}-${c.state}`} value={c.city}>{c.city}, {c.state}</option>
             ))}
           </select>
         </div>
 
+        {/* SENDER */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
-          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6" style={{ color: '#1b6fff' }}>
-            Client Information
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              value={shipment.client_name || ''}
-              onChange={(e) => setShipment({ ...shipment, client_name: e.target.value })}
-              placeholder="Client Name"
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-            />
-            <input
-              type="email"
-              value={shipment.client_email || ''}
-              onChange={(e) => setShipment({ ...shipment, client_email: e.target.value })}
-              placeholder="Email"
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-            />
-            <input
-              type="tel"
-              value={shipment.client_phone || ''}
-              onChange={(e) => setShipment({ ...shipment, client_phone: e.target.value })}
-              placeholder="Phone"
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-            />
-            <input
-              type="text"
-              value={shipment.client_notes || ''}
-              onChange={(e) => setShipment({ ...shipment, client_notes: e.target.value })}
-              placeholder="Internal Notes"
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
-            <MapPin className="w-3 h-3" />
-            Route Addresses
+            <Send className="w-3 h-3" />
+            Sender Information
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <input type="text" value={shipment.sender_name || ''}
+              onChange={(e) => setShipment({ ...shipment, sender_name: e.target.value })}
+              placeholder="Sender Name" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="email" value={shipment.sender_email || ''}
+              onChange={(e) => setShipment({ ...shipment, sender_email: e.target.value })}
+              placeholder="Sender Email" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="tel" value={shipment.sender_phone || ''}
+              onChange={(e) => setShipment({ ...shipment, sender_phone: e.target.value })}
+              placeholder="Sender Phone" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="text" value={shipment.sender_street || ''}
+              onChange={(e) => setShipment({ ...shipment, sender_street: e.target.value, from_street: e.target.value })}
+              placeholder="Sender Street Address" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+          </div>
+
+          <select value={shipment.from_city_key}
+            onChange={(e) => setShipment({ ...shipment, from_city_key: e.target.value })}
+            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+            {US_CITIES.map((c) => (
+              <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* RECEIVER */}
+        <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
+          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
+            <User className="w-3 h-3" />
+            Receiver Information
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <input type="text" value={shipment.client_name || ''}
+              onChange={(e) => setShipment({ ...shipment, client_name: e.target.value })}
+              placeholder="Receiver Name" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="email" value={shipment.client_email || ''}
+              onChange={(e) => setShipment({ ...shipment, client_email: e.target.value })}
+              placeholder="Receiver Email" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="tel" value={shipment.client_phone || ''}
+              onChange={(e) => setShipment({ ...shipment, client_phone: e.target.value })}
+              placeholder="Receiver Phone" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <input type="text" value={shipment.to_street || ''}
+              onChange={(e) => setShipment({ ...shipment, to_street: e.target.value })}
+              placeholder="Receiver Street Address" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                From
-              </label>
-              <select
-                value={shipment.from_city_key}
-                onChange={(e) => setShipment({ ...shipment, from_city_key: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}>
-                {US_CITIES.map((c) => (
-                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>
-                    {c.city}, {c.state}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                To
-              </label>
-              <select
-                value={shipment.to_city_key}
-                onChange={(e) => setShipment({ ...shipment, to_city_key: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}>
-                {US_CITIES.map((c) => (
-                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>
-                    {c.city}, {c.state}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select value={shipment.to_city_key}
+              onChange={(e) => setShipment({ ...shipment, to_city_key: e.target.value })}
+              className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+              {US_CITIES.map((c) => (
+                <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
+              ))}
+            </select>
+            <input type="text" value={shipment.client_notes || ''}
+              onChange={(e) => setShipment({ ...shipment, client_notes: e.target.value })}
+              placeholder="Internal Notes (Admin only)" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
           </div>
         </div>
 
+        {/* PACKAGE */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
             <Package className="w-3 h-3" />
             Package
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              value={shipment.weight || ''}
+            <input type="text" value={shipment.weight || ''}
               onChange={(e) => setShipment({ ...shipment, weight: e.target.value })}
-              placeholder="Weight"
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-            />
-            <select
-              value={shipment.service}
-              onChange={(e) => setShipment({ ...shipment, service: e.target.value })}
-              className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}>
-              {SERVICE_TIERS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+              placeholder="Weight" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            <select value={shipment.service} onChange={(e) => setShipment({ ...shipment, service: e.target.value })}
+              className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+              {SERVICE_TIERS.map((s) => (<option key={s} value={s}>{s}</option>))}
             </select>
           </div>
         </div>
 
         <div className="flex gap-3 justify-end mb-8">
-          <button
-            onClick={handleSave}
-            disabled={saving}
+          <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
-            style={{
-              background: '#DA291C',
-              color: '#fff',
-              boxShadow: '0 0 25px rgba(218,41,28,0.4)',
-            }}>
+            style={{ background: '#DA291C', color: '#fff', boxShadow: '0 0 25px rgba(218,41,28,0.4)' }}>
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
 
+        {/* TRACKING EVENTS */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
             <Clock className="w-3 h-3" />
             Tracking Events ({events.length})
@@ -493,39 +411,23 @@ export default function EditShipment() {
           <div className="rounded-xl p-4 mb-6" style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.2)' }}>
             <div className="text-xs uppercase tracking-wider font-bold mb-3" style={{ color: '#1b6fff' }}>Add New Event</div>
             <div className="grid md:grid-cols-2 gap-3 mb-3">
-              <input
-                type="text"
-                value={newEvent.location}
+              <input type="text" value={newEvent.location}
                 onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                 placeholder="Location (e.g., Chicago, IL 60607)"
-                className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-              />
-              <input
-                type="text"
-                value={newEvent.status_text}
+                className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+              <input type="text" value={newEvent.status_text}
                 onChange={(e) => setNewEvent({ ...newEvent, status_text: e.target.value })}
-                placeholder="Event description"
-                className="px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ background: 'rgba(5,8,22,0.5)', border: '1px solid rgba(59,130,246,0.3)', color: '#ffffff' }}
-              />
+                placeholder="Event description" className="px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newEvent.is_alert}
-                  onChange={(e) => setNewEvent({ ...newEvent, is_alert: e.target.checked })}
-                />
+                <input type="checkbox" checked={newEvent.is_alert}
+                  onChange={(e) => setNewEvent({ ...newEvent, is_alert: e.target.checked })} />
                 <span style={{ color: '#DA291C' }}>Mark as alert (red)</span>
               </label>
-              <button
-                onClick={handleAddEvent}
+              <button onClick={handleAddEvent}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
-                style={{
-                  background: '#1b6fff',
-                  color: '#fff',
-                }}>
+                style={{ background: '#1b6fff', color: '#fff' }}>
                 <Plus className="w-4 h-4" />
                 Add Event
               </button>
@@ -554,8 +456,7 @@ export default function EditShipment() {
                       {event.event_date} • {event.event_time}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteEvent(event.id)}
+                  <button onClick={() => handleDeleteEvent(event.id)}
                     className="p-2 rounded-lg transition-all hover:scale-105"
                     style={{ background: 'rgba(218,41,28,0.1)', border: '1px solid rgba(218,41,28,0.3)' }}>
                     <X className="w-4 h-4" style={{ color: '#DA291C' }} />
@@ -567,22 +468,15 @@ export default function EditShipment() {
         </div>
 
         <div className="rounded-2xl p-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(218,41,28,0.05)',
-            border: '1px solid rgba(218,41,28,0.2)',
-          }}>
+          style={{ background: 'rgba(218,41,28,0.05)', border: '1px solid rgba(218,41,28,0.2)' }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h3 className="font-bold mb-1" style={{ color: '#DA291C' }}>Danger Zone</h3>
               <p className="text-sm" style={{ color: '#a8b2ba' }}>Permanently delete this shipment and all events</p>
             </div>
-            <button
-              onClick={handleDeleteShipment}
+            <button onClick={handleDeleteShipment}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-              style={{
-                background: '#DA291C',
-                color: '#fff',
-              }}>
+              style={{ background: '#DA291C', color: '#fff' }}>
               <Trash2 className="w-4 h-4" />
               Delete Shipment
             </button>
