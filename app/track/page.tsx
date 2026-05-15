@@ -33,9 +33,19 @@ interface Shipment {
   created_at: string;
 }
 
+interface StatusLog {
+  id: string;
+  shipment_id: string;
+  status: string;
+  location: string;
+  notes: string;
+  created_at: string;
+}
+
 export default function TrackPage() {
   const [tracking, setTracking] = useState('');
   const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [logs, setLogs] = useState<StatusLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,8 +63,15 @@ export default function TrackPage() {
       if (fetchError || !data) {
         setError('Tracking number not found');
         setShipment(null);
+        setLogs([]);
       } else {
         setShipment(data);
+        const { data: logsData } = await supabase
+          .from('shipment_status_logs')
+          .select('*')
+          .eq('shipment_id', data.id)
+          .order('created_at', { ascending: false });
+        setLogs(logsData || []);
       }
     } catch (err) {
       setError('Error fetching shipment');
@@ -63,18 +80,16 @@ export default function TrackPage() {
     }
   };
 
-  // 3-stage mapping from stage 1-5
   const getProgressStage = (stage: number): number => {
-    if (stage <= 1) return 1; // Shipped
-    if (stage <= 3) return 2; // In Transit
-    return 3; // Delivered
+    if (stage <= 1) return 1;
+    if (stage <= 3) return 2;
+    return 3;
   };
 
   const stageLabels = ['Shipped', 'In Transit', 'Delivered'];
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
-      {/* HEADER */}
       <nav className="border-b border-slate-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
@@ -92,16 +107,12 @@ export default function TrackPage() {
             <a href="/process" className="hover:text-blue-400 transition">Process</a>
             <a href="/contact" className="hover:text-blue-400 transition">Contact</a>
           </div>
-          <a
-            href="/quote"
-            className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg font-semibold text-sm transition"
-          >
+          <a href="/quote" className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg font-semibold text-sm transition">
             Request Quote
           </a>
         </div>
       </nav>
 
-      {/* ON HOLD OVERLAY */}
       {shipment?.on_hold && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-red-950 border-2 border-red-500 rounded-2xl p-8 max-w-md shadow-2xl shadow-red-500/50 animate-pulse">
@@ -110,16 +121,13 @@ export default function TrackPage() {
               <h2 className="text-2xl font-bold text-red-400">🚨 SHIPMENT ON HOLD</h2>
             </div>
             <p className="text-red-200 text-sm mb-2">Reason:</p>
-            <p className="text-lg font-semibold text-white mb-4">
-              {shipment.on_hold_reason || 'Pending verification'}
-            </p>
+            <p className="text-lg font-semibold text-white mb-4">{shipment.on_hold_reason || 'Pending verification'}</p>
             <p className="text-red-300 text-sm">Please contact support for more information.</p>
           </div>
         </div>
       )}
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* HEADER SECTION */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-1 mb-6">
             <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
@@ -127,16 +135,13 @@ export default function TrackPage() {
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-4">
             Track Your{' '}
-            <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-              Secure Shipment
-            </span>
+            <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Secure Shipment</span>
           </h1>
           <p className="text-slate-400 max-w-xl mx-auto">
             Enter your tracking reference to view real-time shipment status, custody chain, and delivery progress.
           </p>
         </div>
 
-        {/* SEARCH BAR */}
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-12">
           <div className="relative">
             <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-2xl"></div>
@@ -149,16 +154,8 @@ export default function TrackPage() {
                 onChange={(e) => setTracking(e.target.value)}
                 className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-white placeholder-slate-500"
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2"
-              >
-                {loading ? 'Searching...' : (
-                  <>
-                    Track Package <span>⚡</span>
-                  </>
-                )}
+              <button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2">
+                {loading ? 'Searching...' : (<>Track Package <span>⚡</span></>)}
               </button>
             </div>
           </div>
@@ -167,7 +164,6 @@ export default function TrackPage() {
 
         {shipment && (
           <div className="space-y-6">
-            {/* TRACKING NUMBER CARD */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
               <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
@@ -190,7 +186,6 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* LIVE ROUTE TRACKING MAP */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-blue-400 text-xs tracking-widest">📍 LIVE ROUTE TRACKING</h3>
@@ -199,18 +194,13 @@ export default function TrackPage() {
               <USMap shipment={shipment} />
             </div>
 
-            {/* 3-STAGE PROGRESS BAR */}
+            {/* USPS-STYLE PROGRESS BAR */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
               <p className="text-blue-400 text-xs tracking-widest mb-8">SHIPMENT PROGRESS</p>
-              <ProgressBar
-                currentStage={getProgressStage(shipment.stage)}
-                stageLabels={stageLabels}
-              />
+              <USPSProgressBar currentStage={getProgressStage(shipment.stage)} stageLabels={stageLabels} />
             </div>
 
-            {/* SENDER & RECEIVER CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* SENDER CARD */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-blue-500/50 transition">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-2xl">📤</span>
@@ -220,27 +210,20 @@ export default function TrackPage() {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-slate-400 text-xs mb-1">EMAIL</p>
-                    <a href={`mailto:${shipment.sender_email}`} className="text-blue-300 hover:text-blue-200">
-                      {shipment.sender_email}
-                    </a>
+                    <a href={`mailto:${shipment.sender_email}`} className="text-blue-300 hover:text-blue-200">{shipment.sender_email}</a>
                   </div>
                   <div>
                     <p className="text-slate-400 text-xs mb-1">PHONE</p>
-                    <a href={`tel:${shipment.sender_phone}`} className="text-blue-300 hover:text-blue-200">
-                      {shipment.sender_phone}
-                    </a>
+                    <a href={`tel:${shipment.sender_phone}`} className="text-blue-300 hover:text-blue-200">{shipment.sender_phone}</a>
                   </div>
                   <div className="pt-3 border-t border-slate-800">
                     <p className="text-slate-400 text-xs mb-1">ADDRESS</p>
                     <p className="text-slate-200">{shipment.sender_street}</p>
-                    <p className="text-slate-200">
-                      {shipment.from_city}, {shipment.from_state} {shipment.from_zip}
-                    </p>
+                    <p className="text-slate-200">{shipment.from_city}, {shipment.from_state} {shipment.from_zip}</p>
                   </div>
                 </div>
               </div>
 
-              {/* RECEIVER CARD */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-blue-500/50 transition">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-2xl">📥</span>
@@ -250,28 +233,77 @@ export default function TrackPage() {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-slate-400 text-xs mb-1">EMAIL</p>
-                    <a href={`mailto:${shipment.client_email}`} className="text-blue-300 hover:text-blue-200">
-                      {shipment.client_email}
-                    </a>
+                    <a href={`mailto:${shipment.client_email}`} className="text-blue-300 hover:text-blue-200">{shipment.client_email}</a>
                   </div>
                   <div>
                     <p className="text-slate-400 text-xs mb-1">PHONE</p>
-                    <a href={`tel:${shipment.client_phone}`} className="text-blue-300 hover:text-blue-200">
-                      {shipment.client_phone}
-                    </a>
+                    <a href={`tel:${shipment.client_phone}`} className="text-blue-300 hover:text-blue-200">{shipment.client_phone}</a>
                   </div>
                   <div className="pt-3 border-t border-slate-800">
                     <p className="text-slate-400 text-xs mb-1">ADDRESS</p>
                     <p className="text-slate-200">{shipment.to_street}</p>
-                    <p className="text-slate-200">
-                      {shipment.to_city}, {shipment.to_state} {shipment.to_zip}
-                    </p>
+                    <p className="text-slate-200">{shipment.to_city}, {shipment.to_state} {shipment.to_zip}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ROUTE & PACKAGE DETAILS */}
+            {/* TRACKING HISTORY */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+              <p className="text-blue-400 text-xs tracking-widest mb-6">🕐 TRACKING HISTORY</p>
+              {logs.length > 0 ? (
+                <div className="space-y-4">
+                  {logs.map((log, index) => (
+                    <div key={log.id} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-400 ring-4 ring-blue-400/20' : 'bg-slate-600'}`}></div>
+                        {index < logs.length - 1 && <div className="w-px flex-1 bg-slate-700 mt-1"></div>}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="font-semibold text-white">{log.status}</p>
+                        {log.location && (
+                          <p className="text-slate-400 text-sm flex items-center gap-1 mt-1">
+                            📍 {log.location}
+                          </p>
+                        )}
+                        {log.notes && <p className="text-slate-300 text-sm mt-1">{log.notes}</p>}
+                        <p className="text-slate-500 text-xs mt-1">
+                          {new Date(log.created_at).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 rounded-full bg-blue-400 ring-4 ring-blue-400/20"></div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">Shipment Created — Awaiting Pickup</p>
+                    <p className="text-slate-400 text-sm flex items-center gap-1 mt-1">
+                      📍 {shipment.from_city}, {shipment.from_state} {shipment.from_zip}
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1">
+                      {new Date(shipment.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                 <p className="text-blue-400 text-xs tracking-widest mb-4">📍 ROUTE</p>
@@ -305,25 +337,15 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* HELP CTA */}
             <div className="bg-gradient-to-r from-slate-900 to-blue-950/30 border border-slate-800 rounded-2xl p-8">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">Need Help With This Shipment?</h3>
-                  <p className="text-slate-400 text-sm">
-                    Get email notifications or contact our secure operations team for support.
-                  </p>
+                  <p className="text-slate-400 text-sm">Get email notifications or contact our secure operations team for support.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-5 py-3 rounded-lg font-semibold text-sm transition">
-                    ✉️ Get Email Updates
-                  </button>
-                  <a
-                    href="/contact"
-                    className="bg-red-600 hover:bg-red-700 px-5 py-3 rounded-lg font-semibold text-sm transition"
-                  >
-                    🎧 Contact Support
-                  </a>
+                  <button className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-5 py-3 rounded-lg font-semibold text-sm transition">✉️ Get Email Updates</button>
+                  <a href="/contact" className="bg-red-600 hover:bg-red-700 px-5 py-3 rounded-lg font-semibold text-sm transition">🎧 Contact Support</a>
                 </div>
               </div>
             </div>
@@ -331,7 +353,6 @@ export default function TrackPage() {
         )}
       </div>
 
-      {/* FOOTER */}
       <footer className="border-t border-slate-800 mt-16 px-6 py-6">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between text-sm text-slate-400">
           <p>© 2026 Discreet Vault Logistics. Secure private logistics platform.</p>
@@ -346,91 +367,91 @@ export default function TrackPage() {
   );
 }
 
-/* 3-STAGE PROGRESS BAR */
-function ProgressBar({ currentStage, stageLabels }: { currentStage: number; stageLabels: string[] }) {
-  return (
-    <div className="relative">
-      {/* Background track */}
-      <div className="absolute top-8 left-8 right-8 h-1 bg-slate-700 rounded-full"></div>
-      {/* Filled track */}
-      <div
-        className="absolute top-8 left-8 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-700 shadow-[0_0_15px_rgba(59,130,246,0.7)]"
-        style={{
-          width: `calc(${((currentStage - 1) / (stageLabels.length - 1)) * 100}% - ${(currentStage - 1) * 16}px)`,
-        }}
-      ></div>
+/* USPS-STYLE THICK FILLED PROGRESS BAR */
+function USPSProgressBar({ currentStage, stageLabels }: { currentStage: number; stageLabels: string[] }) {
+  const fillPercent = ((currentStage - 1) / (stageLabels.length - 1)) * 100;
 
-      {/* Stage circles */}
-      <div className="relative flex justify-between">
-        {stageLabels.map((label, index) => {
-          const stageNum = index + 1;
-          const isActive = stageNum <= currentStage;
-          const isCurrent = stageNum === currentStage;
-          return (
-            <div key={index} className="flex flex-col items-center">
+  return (
+    <div className="w-full">
+      {/* Thick filled bar */}
+      <div className="relative mb-6">
+        <div className="h-6 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 transition-all duration-1000 shadow-[0_0_30px_rgba(59,130,246,0.8)]"
+            style={{
+              width: `${fillPercent}%`,
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 3s linear infinite',
+            }}
+          ></div>
+        </div>
+
+        {/* Stage markers overlaid on bar */}
+        <div className="absolute inset-0 flex justify-between items-center px-3">
+          {stageLabels.map((_, index) => {
+            const stageNum = index + 1;
+            const isActive = stageNum <= currentStage;
+            const isCurrent = stageNum === currentStage;
+            return (
               <div
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-500 ${
+                key={index}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all duration-500 ${
                   isActive
-                    ? 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-[0_0_25px_rgba(59,130,246,0.8)]'
-                    : 'bg-slate-800 border-2 border-slate-700 text-slate-500'
+                    ? 'bg-blue-500 border-white shadow-[0_0_20px_rgba(59,130,246,1)]'
+                    : 'bg-slate-700 border-slate-600 text-slate-400'
                 }`}
               >
                 {isCurrent ? (
-                  <span className="animate-bounce">✈️</span>
+                  <span className="text-xl animate-bounce">✈️</span>
                 ) : isActive ? (
-                  <span>✓</span>
+                  '✓'
                 ) : (
                   stageNum
                 )}
               </div>
-              <p
-                className={`mt-3 text-xs tracking-widest font-semibold ${
-                  isActive ? 'text-blue-400' : 'text-slate-500'
-                }`}
-              >
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Labels */}
+      <div className="flex justify-between">
+        {stageLabels.map((label, index) => {
+          const stageNum = index + 1;
+          const isActive = stageNum <= currentStage;
+          return (
+            <div key={index} className="text-center flex-1">
+              <p className={`text-xs tracking-widest font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'}`}>
                 {label.toUpperCase()}
               </p>
             </div>
           );
         })}
       </div>
+
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 }
 
-/* US MAP COMPONENT - PROPER US SHAPE */
+/* US MAP COMPONENT */
 function USMap({ shipment }: { shipment: Shipment }) {
-  // US city coordinates on map (SVG viewBox 0 0 1000 600)
   const cityCoords: Record<string, [number, number]> = {
-    'NEW YORK,NY': [840, 220],
-    'LOS ANGELES,CA': [130, 350],
-    'CHICAGO,IL': [600, 240],
-    'HOUSTON,TX': [530, 440],
-    'PHOENIX,AZ': [240, 380],
-    'PHILADELPHIA,PA': [820, 230],
-    'SAN ANTONIO,TX': [490, 460],
-    'SAN DIEGO,CA': [140, 380],
-    'DALLAS,TX': [530, 410],
-    'AUSTIN,TX': [510, 450],
-    'JACKSONVILLE,FL': [780, 470],
-    'COLUMBUS,OH': [700, 260],
-    'CHARLOTTE,NC': [750, 320],
-    'SEATTLE,WA': [130, 130],
-    'DENVER,CO': [370, 290],
-    'WASHINGTON,DC': [800, 260],
-    'BOSTON,MA': [870, 200],
-    'NASHVILLE,TN': [660, 320],
-    'DETROIT,MI': [680, 220],
-    'OKLAHOMA CITY,OK': [490, 360],
-    'MEMPHIS,TN': [610, 340],
-    'PORTLAND,OR': [120, 160],
-    'ATLANTA,GA': [720, 380],
-    'MIAMI,FL': [800, 530],
-    'SAN FRANCISCO,CA': [110, 290],
-    'SACRAMENTO,CA': [130, 270],
-    'KANSAS CITY,MO': [510, 290],
-    'BALTIMORE,MD': [810, 250],
-    'LAS VEGAS,NV': [220, 320],
+    'NEW YORK,NY': [840, 220], 'LOS ANGELES,CA': [130, 350], 'CHICAGO,IL': [600, 240],
+    'HOUSTON,TX': [530, 440], 'PHOENIX,AZ': [240, 380], 'PHILADELPHIA,PA': [820, 230],
+    'SAN ANTONIO,TX': [490, 460], 'SAN DIEGO,CA': [140, 380], 'DALLAS,TX': [530, 410],
+    'AUSTIN,TX': [510, 450], 'JACKSONVILLE,FL': [780, 470], 'COLUMBUS,OH': [700, 260],
+    'CHARLOTTE,NC': [750, 320], 'SEATTLE,WA': [130, 130], 'DENVER,CO': [370, 290],
+    'WASHINGTON,DC': [800, 260], 'BOSTON,MA': [870, 200], 'NASHVILLE,TN': [660, 320],
+    'DETROIT,MI': [680, 220], 'OKLAHOMA CITY,OK': [490, 360], 'MEMPHIS,TN': [610, 340],
+    'PORTLAND,OR': [120, 160], 'ATLANTA,GA': [720, 380], 'MIAMI,FL': [800, 530],
+    'SAN FRANCISCO,CA': [110, 290], 'SACRAMENTO,CA': [130, 270], 'KANSAS CITY,MO': [510, 290],
+    'BALTIMORE,MD': [810, 250], 'LAS VEGAS,NV': [220, 320],
   };
 
   const getCoords = (city: string, state: string): [number, number] => {
@@ -441,7 +462,6 @@ function USMap({ shipment }: { shipment: Shipment }) {
   const from = getCoords(shipment.from_city, shipment.from_state);
   const to = getCoords(shipment.to_city, shipment.to_state);
 
-  // Current position - use current_x/current_y if set, otherwise interpolate
   let curr: [number, number];
   if (shipment.current_x && shipment.current_y) {
     curr = [shipment.current_x, shipment.current_y];
@@ -455,18 +475,10 @@ function USMap({ shipment }: { shipment: Shipment }) {
   return (
     <div className="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
       <svg viewBox="0 0 1000 600" className="w-full h-[500px]">
-        {/* USA Map outline - simplified continental US shape */}
         <path
-          d="M 100 180 
-             L 130 130 L 180 110 L 250 100 L 320 95 L 400 90 L 480 85 L 560 88 L 640 92 L 720 98 L 800 110 L 860 130 L 900 160 L 920 200
-             L 925 230 L 920 260 L 900 280 L 880 290 L 870 310 L 880 330 L 870 360 L 850 380 L 830 400 L 810 430 L 790 460 L 770 490 L 740 510 L 700 520 L 660 510 L 620 500 L 580 490 L 540 480 L 500 475 L 460 470 L 420 460 L 380 445 L 350 425 L 320 410 L 290 395 L 260 380 L 230 365 L 200 350 L 175 330 L 155 305 L 140 280 L 125 250 L 115 220 L 105 195 Z"
-          fill="rgba(30, 41, 59, 0.4)"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          opacity="0.6"
+          d="M 100 180 L 130 130 L 180 110 L 250 100 L 320 95 L 400 90 L 480 85 L 560 88 L 640 92 L 720 98 L 800 110 L 860 130 L 900 160 L 920 200 L 925 230 L 920 260 L 900 280 L 880 290 L 870 310 L 880 330 L 870 360 L 850 380 L 830 400 L 810 430 L 790 460 L 770 490 L 740 510 L 700 520 L 660 510 L 620 500 L 580 490 L 540 480 L 500 475 L 460 470 L 420 460 L 380 445 L 350 425 L 320 410 L 290 395 L 260 380 L 230 365 L 200 350 L 175 330 L 155 305 L 140 280 L 125 250 L 115 220 L 105 195 Z"
+          fill="rgba(30, 41, 59, 0.4)" stroke="#3b82f6" strokeWidth="2" opacity="0.6"
         />
-
-        {/* Grid pattern */}
         <defs>
           <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
             <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(59, 130, 246, 0.05)" strokeWidth="1" />
@@ -477,56 +489,23 @@ function USMap({ shipment }: { shipment: Shipment }) {
           </linearGradient>
         </defs>
         <rect width="1000" height="600" fill="url(#grid)" />
-
-        {/* Route line */}
-        <line
-          x1={from[0]}
-          y1={from[1]}
-          x2={to[0]}
-          y2={to[1]}
-          stroke="url(#routeGrad)"
-          strokeWidth="2"
-          strokeDasharray="6 4"
-          opacity="0.7"
-        />
-
-        {/* From pin */}
+        <line x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} stroke="url(#routeGrad)" strokeWidth="2" strokeDasharray="6 4" opacity="0.7" />
         <g>
           <circle cx={from[0]} cy={from[1]} r="20" fill="#3b82f6" opacity="0.2" />
           <circle cx={from[0]} cy={from[1]} r="10" fill="#3b82f6" opacity="0.4" />
           <circle cx={from[0]} cy={from[1]} r="5" fill="#60a5fa" />
-          <text
-            x={from[0]}
-            y={from[1] + 35}
-            textAnchor="middle"
-            fill="#cbd5e1"
-            fontSize="14"
-            fontWeight="bold"
-            letterSpacing="2"
-          >
+          <text x={from[0]} y={from[1] + 35} textAnchor="middle" fill="#cbd5e1" fontSize="14" fontWeight="bold" letterSpacing="2">
             {(shipment.from_city || '').toUpperCase()}
           </text>
         </g>
-
-        {/* To pin */}
         <g>
           <circle cx={to[0]} cy={to[1]} r="20" fill="#3b82f6" opacity="0.2" />
           <circle cx={to[0]} cy={to[1]} r="10" fill="#3b82f6" opacity="0.4" />
           <circle cx={to[0]} cy={to[1]} r="5" fill="#60a5fa" />
-          <text
-            x={to[0]}
-            y={to[1] - 20}
-            textAnchor="middle"
-            fill="#60a5fa"
-            fontSize="14"
-            fontWeight="bold"
-            letterSpacing="2"
-          >
+          <text x={to[0]} y={to[1] - 20} textAnchor="middle" fill="#60a5fa" fontSize="14" fontWeight="bold" letterSpacing="2">
             {(shipment.to_city || '').toUpperCase()}
           </text>
         </g>
-
-        {/* Current location - animated/pulsing */}
         <g>
           <circle cx={curr[0]} cy={curr[1]} r="25" fill={pinColor} opacity="0.15">
             <animate attributeName="r" values="20;35;20" dur="2s" repeatCount="indefinite" />
@@ -536,8 +515,6 @@ function USMap({ shipment }: { shipment: Shipment }) {
           <circle cx={curr[0]} cy={curr[1]} r="6" fill={pinColor} />
         </g>
       </svg>
-
-      {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-slate-900/80 backdrop-blur border border-slate-700 rounded-lg p-3 text-xs space-y-1">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-blue-400"></div>
