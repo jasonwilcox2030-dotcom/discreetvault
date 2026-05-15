@@ -1,7 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface Shipment {
   id: string;
@@ -191,10 +195,9 @@ export default function TrackPage() {
                 <h3 className="text-blue-400 text-xs tracking-widest">📍 LIVE ROUTE TRACKING</h3>
                 <span className="text-xs text-slate-400">⚡ Real-time</span>
               </div>
-              <USMap shipment={shipment} />
+              <MapboxMap shipment={shipment} />
             </div>
 
-            {/* USPS-STYLE PROGRESS BAR */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
               <p className="text-blue-400 text-xs tracking-widest mb-8">SHIPMENT PROGRESS</p>
               <USPSProgressBar currentStage={getProgressStage(shipment.stage)} stageLabels={stageLabels} />
@@ -248,7 +251,6 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* TRACKING HISTORY */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
               <p className="text-blue-400 text-xs tracking-widest mb-6">🕐 TRACKING HISTORY</p>
               {logs.length > 0 ? (
@@ -262,18 +264,12 @@ export default function TrackPage() {
                       <div className="flex-1 pb-4">
                         <p className="font-semibold text-white">{log.status}</p>
                         {log.location && (
-                          <p className="text-slate-400 text-sm flex items-center gap-1 mt-1">
-                            📍 {log.location}
-                          </p>
+                          <p className="text-slate-400 text-sm flex items-center gap-1 mt-1">📍 {log.location}</p>
                         )}
                         {log.notes && <p className="text-slate-300 text-sm mt-1">{log.notes}</p>}
                         <p className="text-slate-500 text-xs mt-1">
                           {new Date(log.created_at).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
+                            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
                           })}
                         </p>
                       </div>
@@ -292,11 +288,7 @@ export default function TrackPage() {
                     </p>
                     <p className="text-slate-500 text-xs mt-1">
                       {new Date(shipment.created_at).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
+                        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
                       })}
                     </p>
                   </div>
@@ -367,68 +359,41 @@ export default function TrackPage() {
   );
 }
 
-/* USPS-STYLE THICK FILLED PROGRESS BAR */
 function USPSProgressBar({ currentStage, stageLabels }: { currentStage: number; stageLabels: string[] }) {
   const fillPercent = ((currentStage - 1) / (stageLabels.length - 1)) * 100;
-
   return (
     <div className="w-full">
-      {/* Thick filled bar */}
       <div className="relative mb-6">
         <div className="h-6 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
           <div
             className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 transition-all duration-1000 shadow-[0_0_30px_rgba(59,130,246,0.8)]"
-            style={{
-              width: `${fillPercent}%`,
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 3s linear infinite',
-            }}
+            style={{ width: `${fillPercent}%`, backgroundSize: '200% 100%', animation: 'shimmer 3s linear infinite' }}
           ></div>
         </div>
-
-        {/* Stage markers overlaid on bar */}
         <div className="absolute inset-0 flex justify-between items-center px-3">
           {stageLabels.map((_, index) => {
             const stageNum = index + 1;
             const isActive = stageNum <= currentStage;
             const isCurrent = stageNum === currentStage;
             return (
-              <div
-                key={index}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all duration-500 ${
-                  isActive
-                    ? 'bg-blue-500 border-white shadow-[0_0_20px_rgba(59,130,246,1)]'
-                    : 'bg-slate-700 border-slate-600 text-slate-400'
-                }`}
-              >
-                {isCurrent ? (
-                  <span className="text-xl animate-bounce">✈️</span>
-                ) : isActive ? (
-                  '✓'
-                ) : (
-                  stageNum
-                )}
+              <div key={index} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all duration-500 ${isActive ? 'bg-blue-500 border-white shadow-[0_0_20px_rgba(59,130,246,1)]' : 'bg-slate-700 border-slate-600 text-slate-400'}`}>
+                {isCurrent ? <span className="text-xl animate-bounce">✈️</span> : isActive ? '✓' : stageNum}
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* Labels */}
       <div className="flex justify-between">
         {stageLabels.map((label, index) => {
           const stageNum = index + 1;
           const isActive = stageNum <= currentStage;
           return (
             <div key={index} className="text-center flex-1">
-              <p className={`text-xs tracking-widest font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'}`}>
-                {label.toUpperCase()}
-              </p>
+              <p className={`text-xs tracking-widest font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'}`}>{label.toUpperCase()}</p>
             </div>
           );
         })}
       </div>
-
       <style jsx>{`
         @keyframes shimmer {
           0% { background-position: 200% 0; }
@@ -439,93 +404,209 @@ function USPSProgressBar({ currentStage, stageLabels }: { currentStage: number; 
   );
 }
 
-/* US MAP COMPONENT */
-function USMap({ shipment }: { shipment: Shipment }) {
+/* MAPBOX REAL GPS MAP - DARK THEME */
+function MapboxMap({ shipment }: { shipment: Shipment }) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+
+  // US city coordinates [lng, lat]
   const cityCoords: Record<string, [number, number]> = {
-    'NEW YORK,NY': [840, 220], 'LOS ANGELES,CA': [130, 350], 'CHICAGO,IL': [600, 240],
-    'HOUSTON,TX': [530, 440], 'PHOENIX,AZ': [240, 380], 'PHILADELPHIA,PA': [820, 230],
-    'SAN ANTONIO,TX': [490, 460], 'SAN DIEGO,CA': [140, 380], 'DALLAS,TX': [530, 410],
-    'AUSTIN,TX': [510, 450], 'JACKSONVILLE,FL': [780, 470], 'COLUMBUS,OH': [700, 260],
-    'CHARLOTTE,NC': [750, 320], 'SEATTLE,WA': [130, 130], 'DENVER,CO': [370, 290],
-    'WASHINGTON,DC': [800, 260], 'BOSTON,MA': [870, 200], 'NASHVILLE,TN': [660, 320],
-    'DETROIT,MI': [680, 220], 'OKLAHOMA CITY,OK': [490, 360], 'MEMPHIS,TN': [610, 340],
-    'PORTLAND,OR': [120, 160], 'ATLANTA,GA': [720, 380], 'MIAMI,FL': [800, 530],
-    'SAN FRANCISCO,CA': [110, 290], 'SACRAMENTO,CA': [130, 270], 'KANSAS CITY,MO': [510, 290],
-    'BALTIMORE,MD': [810, 250], 'LAS VEGAS,NV': [220, 320],
+    'NEW YORK,NY': [-74.0060, 40.7128],
+    'LOS ANGELES,CA': [-118.2437, 34.0522],
+    'CHICAGO,IL': [-87.6298, 41.8781],
+    'HOUSTON,TX': [-95.3698, 29.7604],
+    'PHOENIX,AZ': [-112.0740, 33.4484],
+    'PHILADELPHIA,PA': [-75.1652, 39.9526],
+    'SAN ANTONIO,TX': [-98.4936, 29.4241],
+    'SAN DIEGO,CA': [-117.1611, 32.7157],
+    'DALLAS,TX': [-96.7970, 32.7767],
+    'AUSTIN,TX': [-97.7431, 30.2672],
+    'JACKSONVILLE,FL': [-81.6557, 30.3322],
+    'COLUMBUS,OH': [-82.9988, 39.9612],
+    'CHARLOTTE,NC': [-80.8431, 35.2271],
+    'SEATTLE,WA': [-122.3321, 47.6062],
+    'DENVER,CO': [-104.9903, 39.7392],
+    'WASHINGTON,DC': [-77.0369, 38.9072],
+    'BOSTON,MA': [-71.0589, 42.3601],
+    'NASHVILLE,TN': [-86.7816, 36.1627],
+    'DETROIT,MI': [-83.0458, 42.3314],
+    'OKLAHOMA CITY,OK': [-97.5164, 35.4676],
+    'MEMPHIS,TN': [-90.0490, 35.1495],
+    'PORTLAND,OR': [-122.6587, 45.5152],
+    'ATLANTA,GA': [-84.3880, 33.7490],
+    'MIAMI,FL': [-80.1918, 25.7617],
+    'SAN FRANCISCO,CA': [-122.4194, 37.7749],
+    'SACRAMENTO,CA': [-121.4944, 38.5816],
+    'KANSAS CITY,MO': [-94.5786, 39.0997],
+    'BALTIMORE,MD': [-76.6122, 39.2904],
+    'LAS VEGAS,NV': [-115.1398, 36.1699],
+    'EL PASO,TX': [-106.4850, 31.7619],
+    'MILWAUKEE,WI': [-87.9065, 43.0389],
+    'ALBUQUERQUE,NM': [-106.6504, 35.0844],
+    'TUCSON,AZ': [-110.9265, 32.2226],
+    'FRESNO,CA': [-119.7871, 36.7378],
+    'MESA,AZ': [-111.8315, 33.4152],
+    'INDIANAPOLIS,IN': [-86.1581, 39.7684],
+    'LOUISVILLE,KY': [-85.7585, 38.2527],
+    'RICHMOND,VA': [-77.4360, 37.5407],
+    'CLEVELAND,OH': [-81.6944, 41.4993],
+    'NEW ORLEANS,LA': [-90.0715, 29.9511],
+    'TAMPA,FL': [-82.4572, 27.9506],
+    'ORLANDO,FL': [-81.3792, 28.5383],
+    'PITTSBURGH,PA': [-79.9959, 40.4406],
+    'CINCINNATI,OH': [-84.5120, 39.1031],
+    'MINNEAPOLIS,MN': [-93.2650, 44.9778],
+    'ST. LOUIS,MO': [-90.1994, 38.6270],
+    'SALT LAKE CITY,UT': [-111.8910, 40.7608],
+    'OMAHA,NE': [-95.9345, 41.2565],
+    'RALEIGH,NC': [-78.6382, 35.7796],
+    'VIRGINIA BEACH,VA': [-75.9780, 36.8529],
   };
 
   const getCoords = (city: string, state: string): [number, number] => {
     const key = `${(city || '').toUpperCase()},${(state || '').toUpperCase()}`;
-    return cityCoords[key] || [500, 300];
+    return cityCoords[key] || [-95.7129, 37.0902]; // Center of US default
   };
 
-  const from = getCoords(shipment.from_city, shipment.from_state);
-  const to = getCoords(shipment.to_city, shipment.to_state);
+  useEffect(() => {
+    if (!mapContainer.current) return;
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
 
-  let curr: [number, number];
-  if (shipment.current_x && shipment.current_y) {
-    curr = [shipment.current_x, shipment.current_y];
-  } else {
-    const progress = Math.min(shipment.stage / 5, 1);
-    curr = [from[0] + (to[0] - from[0]) * progress, from[1] + (to[1] - from[1]) * progress];
-  }
+    const from = getCoords(shipment.from_city, shipment.from_state);
+    const to = getCoords(shipment.to_city, shipment.to_state);
 
-  const pinColor = shipment.on_hold ? '#ef4444' : '#3b82f6';
+    // Current location
+    let curr: [number, number];
+    if (shipment.current_city && shipment.current_state) {
+      curr = getCoords(shipment.current_city, shipment.current_state);
+    } else {
+      const progress = Math.min(shipment.stage / 5, 1);
+      curr = [from[0] + (to[0] - from[0]) * progress, from[1] + (to[1] - from[1]) * progress];
+    }
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+      zoom: 3.5,
+      attributionControl: false,
+    });
+
+    map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+
+    map.current.on('load', () => {
+      if (!map.current) return;
+
+      // Add route line
+      map.current.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: [from, to] },
+        },
+      });
+
+      map.current.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 3,
+          'line-dasharray': [2, 2],
+        },
+      });
+
+      // FROM marker (green pin)
+      const fromEl = document.createElement('div');
+      fromEl.innerHTML = `<div style="
+        width: 24px; height: 24px; border-radius: 50%;
+        background: #22c55e; border: 3px solid white;
+        box-shadow: 0 0 20px rgba(34,197,94,0.8);
+      "></div>`;
+      new mapboxgl.Marker(fromEl)
+        .setLngLat(from)
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>FROM:</strong><br>${shipment.from_city}, ${shipment.from_state}`))
+        .addTo(map.current);
+
+      // TO marker (blue pin)
+      const toEl = document.createElement('div');
+      toEl.innerHTML = `<div style="
+        width: 24px; height: 24px; border-radius: 50%;
+        background: #3b82f6; border: 3px solid white;
+        box-shadow: 0 0 20px rgba(59,130,246,0.8);
+      "></div>`;
+      new mapboxgl.Marker(toEl)
+        .setLngLat(to)
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>TO:</strong><br>${shipment.to_city}, ${shipment.to_state}`))
+        .addTo(map.current);
+
+      // CURRENT marker (pulsing - red if on hold, cyan otherwise)
+      const currColor = shipment.on_hold ? '#ef4444' : '#06b6d4';
+      const currGlow = shipment.on_hold ? 'rgba(239,68,68,0.8)' : 'rgba(6,182,212,0.8)';
+      const currEl = document.createElement('div');
+      currEl.innerHTML = `
+        <div style="position: relative; width: 30px; height: 30px;">
+          <div style="
+            position: absolute; top: 0; left: 0;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: ${currColor}; opacity: 0.3;
+            animation: pulse 2s infinite;
+          "></div>
+          <div style="
+            position: absolute; top: 7px; left: 7px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: ${currColor}; border: 2px solid white;
+            box-shadow: 0 0 25px ${currGlow};
+          "></div>
+        </div>
+        <style>
+          @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(2.5); opacity: 0; }
+          }
+        </style>
+      `;
+      new mapboxgl.Marker(currEl)
+        .setLngLat(curr)
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<strong>${shipment.on_hold ? '🚨 ON HOLD' : '📍 CURRENT'}</strong><br>${shipment.current_city || 'In Transit'}, ${shipment.current_state || ''}`))
+        .addTo(map.current);
+
+      // Fit bounds to show all points
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend(from);
+      bounds.extend(to);
+      bounds.extend(curr);
+      map.current.fitBounds(bounds, { padding: 80, maxZoom: 7 });
+    });
+
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, [shipment]);
 
   return (
     <div className="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
-      <svg viewBox="0 0 1000 600" className="w-full h-[500px]">
-        <path
-          d="M 100 180 L 130 130 L 180 110 L 250 100 L 320 95 L 400 90 L 480 85 L 560 88 L 640 92 L 720 98 L 800 110 L 860 130 L 900 160 L 920 200 L 925 230 L 920 260 L 900 280 L 880 290 L 870 310 L 880 330 L 870 360 L 850 380 L 830 400 L 810 430 L 790 460 L 770 490 L 740 510 L 700 520 L 660 510 L 620 500 L 580 490 L 540 480 L 500 475 L 460 470 L 420 460 L 380 445 L 350 425 L 320 410 L 290 395 L 260 380 L 230 365 L 200 350 L 175 330 L 155 305 L 140 280 L 125 250 L 115 220 L 105 195 Z"
-          fill="rgba(30, 41, 59, 0.4)" stroke="#3b82f6" strokeWidth="2" opacity="0.6"
-        />
-        <defs>
-          <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(59, 130, 246, 0.05)" strokeWidth="1" />
-          </pattern>
-          <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#60a5fa" />
-          </linearGradient>
-        </defs>
-        <rect width="1000" height="600" fill="url(#grid)" />
-        <line x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} stroke="url(#routeGrad)" strokeWidth="2" strokeDasharray="6 4" opacity="0.7" />
-        <g>
-          <circle cx={from[0]} cy={from[1]} r="20" fill="#3b82f6" opacity="0.2" />
-          <circle cx={from[0]} cy={from[1]} r="10" fill="#3b82f6" opacity="0.4" />
-          <circle cx={from[0]} cy={from[1]} r="5" fill="#60a5fa" />
-          <text x={from[0]} y={from[1] + 35} textAnchor="middle" fill="#cbd5e1" fontSize="14" fontWeight="bold" letterSpacing="2">
-            {(shipment.from_city || '').toUpperCase()}
-          </text>
-        </g>
-        <g>
-          <circle cx={to[0]} cy={to[1]} r="20" fill="#3b82f6" opacity="0.2" />
-          <circle cx={to[0]} cy={to[1]} r="10" fill="#3b82f6" opacity="0.4" />
-          <circle cx={to[0]} cy={to[1]} r="5" fill="#60a5fa" />
-          <text x={to[0]} y={to[1] - 20} textAnchor="middle" fill="#60a5fa" fontSize="14" fontWeight="bold" letterSpacing="2">
-            {(shipment.to_city || '').toUpperCase()}
-          </text>
-        </g>
-        <g>
-          <circle cx={curr[0]} cy={curr[1]} r="25" fill={pinColor} opacity="0.15">
-            <animate attributeName="r" values="20;35;20" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.4;0.05;0.4" dur="2s" repeatCount="indefinite" />
-          </circle>
-          <circle cx={curr[0]} cy={curr[1]} r="12" fill={pinColor} opacity="0.4" />
-          <circle cx={curr[0]} cy={curr[1]} r="6" fill={pinColor} />
-        </g>
-      </svg>
-      <div className="absolute bottom-4 right-4 bg-slate-900/80 backdrop-blur border border-slate-700 rounded-lg p-3 text-xs space-y-1">
+      <div ref={mapContainer} className="w-full h-[500px]" />
+      <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 text-xs space-y-1 z-10">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <span className="text-slate-300">Origin</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${shipment.on_hold ? 'bg-red-500' : 'bg-blue-400'}`}></div>
+          <div className={`w-2 h-2 rounded-full ${shipment.on_hold ? 'bg-red-500' : 'bg-cyan-400'}`}></div>
           <span className="text-slate-300">Current</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
           <span className="text-slate-300">Destination</span>
         </div>
       </div>
