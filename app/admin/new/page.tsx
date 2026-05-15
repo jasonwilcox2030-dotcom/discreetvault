@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, US_CITIES, SERVICE_TIERS, generateTrackingNumber } from '@/lib/supabase';
 import {
-  Shield, ArrowLeft, Save, User, Mail, Phone, FileText,
-  MapPin, Package, Truck
+  Shield, ArrowLeft, Save, User, Send, MapPin, Package
 } from 'lucide-react';
 
 export default function NewShipment() {
@@ -15,12 +14,20 @@ export default function NewShipment() {
   const [error, setError] = useState('');
 
   const [form, setForm] = useState({
+    // Sender
+    sender_name: '',
+    sender_email: '',
+    sender_phone: '',
+    sender_street: '',
+    from_city_key: '',
+    // Receiver (client)
     client_name: '',
     client_email: '',
     client_phone: '',
     client_notes: '',
-    from_city_key: '',
+    to_street: '',
     to_city_key: '',
+    // Package
     weight: '',
     service: SERVICE_TIERS[3],
     eta: '',
@@ -38,7 +45,8 @@ export default function NewShipment() {
   const handleSave = async () => {
     setError('');
 
-    if (!form.client_name) return setError('Client name is required');
+    if (!form.sender_name) return setError('Sender name is required');
+    if (!form.client_name) return setError('Receiver name is required');
     if (!form.from_city_key) return setError('From city is required');
     if (!form.to_city_key) return setError('To city is required');
     if (form.from_city_key === form.to_city_key) return setError('From and To cities must be different');
@@ -64,18 +72,28 @@ export default function NewShipment() {
         stage: 1,
         on_hold: false,
         eta: form.eta || 'Calculating...',
+        // Sender
+        sender_name: form.sender_name,
+        sender_email: form.sender_email || null,
+        sender_phone: form.sender_phone || null,
+        sender_street: form.sender_street || null,
+        // Receiver
         client_name: form.client_name,
         client_email: form.client_email || null,
         client_phone: form.client_phone || null,
         client_notes: form.client_notes || null,
+        // From
         from_city: fromCity.city,
         from_state: fromCity.state,
         from_zip: fromCity.zip,
+        from_street: form.sender_street || null,
         from_x: fromCity.x,
         from_y: fromCity.y,
+        // To
         to_city: toCity.city,
         to_state: toCity.state,
         to_zip: toCity.zip,
+        to_street: form.to_street || null,
         to_x: toCity.x,
         to_y: toCity.y,
         current_city: fromCity.city,
@@ -108,6 +126,12 @@ export default function NewShipment() {
     }
   };
 
+  const inputStyle = {
+    background: 'rgba(5,8,22,0.5)',
+    border: '1px solid rgba(59,130,246,0.3)',
+    color: '#ffffff',
+  };
+
   if (!authed) return null;
 
   return (
@@ -127,14 +151,12 @@ export default function NewShipment() {
             Back to Dashboard
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, #005fcc, #DA291C)',
-                boxShadow: '0 0 25px rgba(27,111,255,0.4)',
-              }}>
-              <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </div>
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #005fcc, #DA291C)',
+              boxShadow: '0 0 25px rgba(27,111,255,0.4)',
+            }}>
+            <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
         </div>
       </header>
@@ -143,153 +165,102 @@ export default function NewShipment() {
         <h1 className="text-3xl md:text-4xl font-black mb-2">Create New Shipment</h1>
         <p className="text-sm mb-8" style={{ color: '#a8b2ba' }}>Fill in all details to generate tracking number</p>
 
+        {/* SENDER */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
+          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
+            <Send className="w-3 h-3" />
+            Sender Information (Person Sending Package)
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Sender Name *</label>
+              <input type="text" value={form.sender_name} onChange={(e) => setForm({ ...form, sender_name: e.target.value })}
+                placeholder="Jane Smith" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Email</label>
+              <input type="email" value={form.sender_email} onChange={(e) => setForm({ ...form, sender_email: e.target.value })}
+                placeholder="sender@email.com" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Phone</label>
+              <input type="tel" value={form.sender_phone} onChange={(e) => setForm({ ...form, sender_phone: e.target.value })}
+                placeholder="(555) 123-4567" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Street Address</label>
+              <input type="text" value={form.sender_street} onChange={(e) => setForm({ ...form, sender_street: e.target.value })}
+                placeholder="123 Main St, Apt 5" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>From City *</label>
+            <select value={form.from_city_key} onChange={(e) => setForm({ ...form, from_city_key: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+              <option value="">Select origin city...</option>
+              {US_CITIES.map((c) => (
+                <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* RECEIVER */}
+        <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
             <User className="w-3 h-3" />
-            Client Information
+            Receiver Information (Client / Recipient)
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Receiver Name *</label>
+              <input type="text" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                placeholder="John Doe" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Email</label>
+              <input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })}
+                placeholder="client@email.com" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Phone</label>
+              <input type="tel" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
+                placeholder="(555) 987-6543" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Street Address</label>
+              <input type="text" value={form.to_street} onChange={(e) => setForm({ ...form, to_street: e.target.value })}
+                placeholder="456 Oak Ave, Unit 12" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Client Name *
-              </label>
-              <input
-                type="text"
-                value={form.client_name}
-                onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={form.client_email}
-                onChange={(e) => setForm({ ...form, client_email: e.target.value })}
-                placeholder="client@email.com"
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={form.client_phone}
-                onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
-                placeholder="(555) 123-4567"
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Internal Notes
-              </label>
-              <input
-                type="text"
-                value={form.client_notes}
-                onChange={(e) => setForm({ ...form, client_notes: e.target.value })}
-                placeholder="Special instructions..."
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
-          <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
-            <MapPin className="w-3 h-3" />
-            Route
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                From City *
-              </label>
-              <select
-                value={form.from_city_key}
-                onChange={(e) => setForm({ ...form, from_city_key: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}>
-                <option value="">Select origin city...</option>
-                {US_CITIES.map((c) => (
-                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>
-                    {c.city}, {c.state}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                To City *
-              </label>
-              <select
-                value={form.to_city_key}
-                onChange={(e) => setForm({ ...form, to_city_key: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>To City *</label>
+              <select value={form.to_city_key} onChange={(e) => setForm({ ...form, to_city_key: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
                 <option value="">Select destination city...</option>
                 {US_CITIES.map((c) => (
-                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>
-                    {c.city}, {c.state}
-                  </option>
+                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Internal Notes (Admin Only)</label>
+              <input type="text" value={form.client_notes} onChange={(e) => setForm({ ...form, client_notes: e.target.value })}
+                placeholder="Special instructions..." className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
           </div>
         </div>
 
+        {/* PACKAGE */}
         <div className="rounded-2xl p-6 mb-6 backdrop-blur-xl"
-          style={{
-            background: 'rgba(16,24,39,0.82)',
-            border: '1px solid rgba(59,130,246,0.18)',
-          }}>
+          style={{ background: 'rgba(16,24,39,0.82)', border: '1px solid rgba(59,130,246,0.18)' }}>
           <div className="text-xs uppercase tracking-[0.3em] font-bold mb-6 flex items-center gap-2" style={{ color: '#1b6fff' }}>
             <Package className="w-3 h-3" />
             Package Details
@@ -297,93 +268,40 @@ export default function NewShipment() {
 
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Weight
-              </label>
-              <input
-                type="text"
-                value={form.weight}
-                onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                placeholder="4 lbs 8 oz"
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Weight</label>
+              <input type="text" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                placeholder="4 lbs 8 oz" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Service Tier
-              </label>
-              <select
-                value={form.service}
-                onChange={(e) => setForm({ ...form, service: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}>
-                {SERVICE_TIERS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Service Tier</label>
+              <select value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+                {SERVICE_TIERS.map((s) => (<option key={s} value={s}>{s}</option>))}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>
-                Expected Delivery
-              </label>
-              <input
-                type="text"
-                value={form.eta}
-                onChange={(e) => setForm({ ...form, eta: e.target.value })}
-                placeholder="Nov 14, 2026"
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{
-                  background: 'rgba(5,8,22,0.5)',
-                  border: '1px solid rgba(59,130,246,0.3)',
-                  color: '#ffffff',
-                }}
-              />
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Expected Delivery</label>
+              <input type="text" value={form.eta} onChange={(e) => setForm({ ...form, eta: e.target.value })}
+                placeholder="Nov 14, 2026" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
           </div>
         </div>
 
         {error && (
           <div className="rounded-xl p-4 mb-6 text-sm" style={{
-            background: 'rgba(218,41,28,0.1)',
-            border: '1px solid rgba(218,41,28,0.3)',
-            color: '#e84a38',
-          }}>
-            {error}
-          </div>
+            background: 'rgba(218,41,28,0.1)', border: '1px solid rgba(218,41,28,0.3)', color: '#e84a38',
+          }}>{error}</div>
         )}
 
         <div className="flex gap-3 justify-end">
-          <button
-            onClick={() => router.push('/admin')}
+          <button onClick={() => router.push('/admin')}
             className="px-6 py-3 rounded-xl font-bold text-sm transition-all"
-            style={{
-              background: 'rgba(27,111,255,0.1)',
-              border: '1px solid rgba(27,111,255,0.3)',
-              color: '#1b6fff',
-            }}>
+            style={{ background: 'rgba(27,111,255,0.1)', border: '1px solid rgba(27,111,255,0.3)', color: '#1b6fff' }}>
             Cancel
           </button>
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
+          <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
-            style={{
-              background: '#DA291C',
-              color: '#fff',
-              boxShadow: '0 0 25px rgba(218,41,28,0.4)',
-            }}>
+            style={{ background: '#DA291C', color: '#fff', boxShadow: '0 0 25px rgba(218,41,28,0.4)' }}>
             <Save className="w-4 h-4" />
             {saving ? 'Creating...' : 'Create Shipment'}
           </button>
