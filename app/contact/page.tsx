@@ -1,8 +1,22 @@
 export default function ContactPage() {
   return (
     <main className="min-h-screen bg-[#05030b] text-white">
-      <section className="relative overflow-hidden px-6 py-20">
+      <section className="relative overflow-hidden px-6 py-8 md:py-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(124,58,237,0.35),transparent_35%),radial-gradient(circle_at_85%_55%,rgba(249,115,22,0.22),transparent_30%)]" />
+
+        <div className="relative z-10 mx-auto mb-12 flex max-w-6xl items-center justify-between">
+          <a href="/" className="text-lg font-black tracking-wide text-white">
+            Discreet Vault Logistics
+          </a>
+
+          <a
+            href="/"
+            className="rounded-full border border-orange-500/60 px-5 py-2 text-sm font-bold text-orange-400 transition hover:bg-orange-500 hover:text-white"
+          >
+            ← Back Home
+          </a>
+        </div>
+
         <div className="relative mx-auto max-w-6xl">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
@@ -16,29 +30,10 @@ export default function ContactPage() {
               </h1>
 
               <p className="max-w-xl text-lg leading-8 text-slate-300">
-                Need shipment support, tracking help, delivery coordination, or a custom logistics request?
-                Contact our support team directly and we’ll respond as quickly as possible.
+                Need shipment support, tracking help, delivery coordination, or
+                a custom logistics request? Contact our support team directly
+                and we’ll respond as quickly as possible.
               </p>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-purple-500/30 bg-white/5 p-5">
-                  <div className="mb-3 text-3xl text-purple-400">▣</div>
-                  <h3 className="font-bold uppercase">Secure</h3>
-                  <p className="mt-1 text-sm text-slate-400">Confidential support</p>
-                </div>
-
-                <div className="rounded-2xl border border-purple-500/30 bg-white/5 p-5">
-                  <div className="mb-3 text-3xl text-purple-400">◷</div>
-                  <h3 className="font-bold uppercase">24/7 Support</h3>
-                  <p className="mt-1 text-sm text-slate-400">Always available</p>
-                </div>
-
-                <div className="rounded-2xl border border-purple-500/30 bg-white/5 p-5">
-                  <div className="mb-3 text-3xl text-purple-400">◇</div>
-                  <h3 className="font-bold uppercase">Reliable</h3>
-                  <p className="mt-1 text-sm text-slate-400">Fast shipment help</p>
-                </div>
-              </div>
             </div>
 
             <div className="relative min-h-[360px] rounded-[2rem] border border-purple-500/20 bg-[#090612] p-8 shadow-2xl shadow-purple-950/40">
@@ -63,15 +58,21 @@ export default function ContactPage() {
               </div>
 
               <div className="absolute left-8 bottom-8">
-                <p className="text-sm uppercase tracking-[0.25em] text-orange-500">Live Route</p>
-                <p className="mt-2 text-2xl font-black">Protected delivery network</p>
+                <p className="text-sm uppercase tracking-[0.25em] text-orange-500">
+                  Live Route
+                </p>
+                <p className="mt-2 text-2xl font-black">
+                  Protected delivery network
+                </p>
               </div>
             </div>
           </div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-2">
             <div className="rounded-3xl border border-purple-500/25 bg-[#0b0714]/90 p-8 shadow-2xl shadow-purple-950/40">
-              <h2 className="mb-8 text-2xl font-bold uppercase">Contact Details</h2>
+              <h2 className="mb-8 text-2xl font-bold uppercase">
+                Contact Details
+              </h2>
 
               <div className="space-y-8">
                 <div className="flex gap-5 border-b border-white/10 pb-6">
@@ -79,8 +80,12 @@ export default function ContactPage() {
                     ✉
                   </div>
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Email</p>
-                    <p className="mt-1 text-white">support@discreetvaultlogistics.us</p>
+                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">
+                      Email
+                    </p>
+                    <p className="mt-1 text-white">
+                      support@discreetvaultlogistics.us
+                    </p>
                   </div>
                 </div>
 
@@ -89,7 +94,9 @@ export default function ContactPage() {
                     ☎
                   </div>
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Phone</p>
+                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">
+                      Phone
+                    </p>
                     <p className="mt-1 text-white">+1 (305) 928-6753</p>
                   </div>
                 </div>
@@ -99,18 +106,25 @@ export default function ContactPage() {
                     ◷
                   </div>
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Support</p>
-                    <p className="mt-1 text-white">24/7 shipment assistance</p>
+                    <p className="text-sm font-bold uppercase tracking-widest text-orange-500">
+                      Support
+                    </p>
+                    <p className="mt-1 text-white">
+                      24/7 shipment assistance
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="rounded-3xl border border-purple-500/25 bg-[#0b0714]/90 p-8 shadow-2xl shadow-purple-950/40">
-              <h2 className="mb-4 text-2xl font-bold uppercase">Get in Touch</h2>
+              <h2 className="mb-4 text-2xl font-bold uppercase">
+                Get in Touch
+              </h2>
 
               <p className="mb-8 leading-7 text-slate-300">
-                Reach out to our team directly using the options below. We’re ready to help.
+                Reach out to our team directly using the options below. We’re
+                ready to help.
               </p>
 
               <div className="space-y-5">
@@ -154,19 +168,27 @@ export default function ContactPage() {
           <div className="mt-10 grid gap-4 border-t border-purple-500/20 pt-8 sm:grid-cols-4">
             <div>
               <p className="font-bold">Secure Handling</p>
-              <p className="mt-1 text-sm text-slate-400">Your shipments stay protected.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Your shipments stay protected.
+              </p>
             </div>
             <div>
               <p className="font-bold">Global Network</p>
-              <p className="mt-1 text-sm text-slate-400">Built for modern logistics.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Built for modern logistics.
+              </p>
             </div>
             <div>
               <p className="font-bold">On-Time Delivery</p>
-              <p className="mt-1 text-sm text-slate-400">Focused on fast resolution.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Focused on fast resolution.
+              </p>
             </div>
             <div>
               <p className="font-bold">Expert Support</p>
-              <p className="mt-1 text-sm text-slate-400">Real people. Real help.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Real people. Real help.
+              </p>
             </div>
           </div>
         </div>
