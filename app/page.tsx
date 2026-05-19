@@ -31,11 +31,13 @@ export default function Home() {
             </div>
           </a>
 
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             {[
+              ['About Us', '/about'],
               ['Services', '/services'],
               ['Security', '/security'],
               ['Process', '/process'],
+              ['Payment', '/payment'],
               ['Contact', '/contact'],
             ].map(([item, href]) => (
               <a
@@ -128,7 +130,17 @@ export default function Home() {
                     <span className="badge badge-success text-xs">Live</span>
                   </div>
 
-                  <HeroLogisticsVisual />
+                  <div className="space-y-5">
+                    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--black)]/40">
+                      <img
+                        src="/discreet-vault-truck-premium-purple-orange.png"
+                        alt="Premium Discreet Vault Logistics delivery truck"
+                        className="h-auto w-full object-cover"
+                      />
+                    </div>
+
+                    <HeroLogisticsVisual />
+                  </div>
 
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--black)]/40 p-6 space-y-4">
                     <div className="flex items-center justify-between">
