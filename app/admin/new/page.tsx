@@ -2,10 +2,64 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, US_CITIES, SERVICE_TIERS, generateTrackingNumber } from '@/lib/supabase';
+import { supabase, SERVICE_TIERS, generateTrackingNumber } from '@/lib/supabase';
 import {
   Shield, ArrowLeft, Save, User, Send, MapPin, Package
 } from 'lucide-react';
+
+// US States with approximate map coordinates (for shipment map display)
+const US_STATES = [
+  { code: 'AL', name: 'Alabama', x: 670, y: 380 },
+  { code: 'AK', name: 'Alaska', x: 150, y: 500 },
+  { code: 'AZ', name: 'Arizona', x: 280, y: 360 },
+  { code: 'AR', name: 'Arkansas', x: 590, y: 360 },
+  { code: 'CA', name: 'California', x: 130, y: 290 },
+  { code: 'CO', name: 'Colorado', x: 390, y: 280 },
+  { code: 'CT', name: 'Connecticut', x: 870, y: 200 },
+  { code: 'DE', name: 'Delaware', x: 840, y: 250 },
+  { code: 'FL', name: 'Florida', x: 760, y: 460 },
+  { code: 'GA', name: 'Georgia', x: 720, y: 390 },
+  { code: 'HI', name: 'Hawaii', x: 280, y: 540 },
+  { code: 'ID', name: 'Idaho', x: 270, y: 170 },
+  { code: 'IL', name: 'Illinois', x: 620, y: 240 },
+  { code: 'IN', name: 'Indiana', x: 660, y: 250 },
+  { code: 'IA', name: 'Iowa', x: 570, y: 220 },
+  { code: 'KS', name: 'Kansas', x: 510, y: 290 },
+  { code: 'KY', name: 'Kentucky', x: 680, y: 290 },
+  { code: 'LA', name: 'Louisiana', x: 590, y: 430 },
+  { code: 'ME', name: 'Maine', x: 890, y: 130 },
+  { code: 'MD', name: 'Maryland', x: 820, y: 250 },
+  { code: 'MA', name: 'Massachusetts', x: 880, y: 180 },
+  { code: 'MI', name: 'Michigan', x: 680, y: 190 },
+  { code: 'MN', name: 'Minnesota', x: 560, y: 150 },
+  { code: 'MS', name: 'Mississippi', x: 630, y: 400 },
+  { code: 'MO', name: 'Missouri', x: 580, y: 290 },
+  { code: 'MT', name: 'Montana', x: 340, y: 130 },
+  { code: 'NE', name: 'Nebraska', x: 490, y: 230 },
+  { code: 'NV', name: 'Nevada', x: 200, y: 260 },
+  { code: 'NH', name: 'New Hampshire', x: 880, y: 160 },
+  { code: 'NJ', name: 'New Jersey', x: 850, y: 220 },
+  { code: 'NM', name: 'New Mexico', x: 360, y: 360 },
+  { code: 'NY', name: 'New York', x: 830, y: 190 },
+  { code: 'NC', name: 'North Carolina', x: 780, y: 320 },
+  { code: 'ND', name: 'North Dakota', x: 470, y: 140 },
+  { code: 'OH', name: 'Ohio', x: 710, y: 240 },
+  { code: 'OK', name: 'Oklahoma', x: 520, y: 350 },
+  { code: 'OR', name: 'Oregon', x: 170, y: 160 },
+  { code: 'PA', name: 'Pennsylvania', x: 790, y: 220 },
+  { code: 'RI', name: 'Rhode Island', x: 880, y: 200 },
+  { code: 'SC', name: 'South Carolina', x: 760, y: 360 },
+  { code: 'SD', name: 'South Dakota', x: 480, y: 190 },
+  { code: 'TN', name: 'Tennessee', x: 680, y: 330 },
+  { code: 'TX', name: 'Texas', x: 490, y: 430 },
+  { code: 'UT', name: 'Utah', x: 290, y: 270 },
+  { code: 'VT', name: 'Vermont', x: 860, y: 160 },
+  { code: 'VA', name: 'Virginia', x: 790, y: 280 },
+  { code: 'WA', name: 'Washington', x: 180, y: 110 },
+  { code: 'WV', name: 'West Virginia', x: 760, y: 260 },
+  { code: 'WI', name: 'Wisconsin', x: 610, y: 180 },
+  { code: 'WY', name: 'Wyoming', x: 380, y: 200 },
+];
 
 export default function NewShipment() {
   const router = useRouter();
@@ -19,14 +73,18 @@ export default function NewShipment() {
     sender_email: '',
     sender_phone: '',
     sender_street: '',
-    from_city_key: '',
+    from_city: '',
+    from_state: '',
+    from_zip: '',
     // Receiver (client)
     client_name: '',
     client_email: '',
     client_phone: '',
     client_notes: '',
     to_street: '',
-    to_city_key: '',
+    to_city: '',
+    to_state: '',
+    to_zip: '',
     // Package
     weight: '',
     service: SERVICE_TIERS[3],
@@ -47,17 +105,20 @@ export default function NewShipment() {
 
     if (!form.sender_name) return setError('Sender name is required');
     if (!form.client_name) return setError('Receiver name is required');
-    if (!form.from_city_key) return setError('From city is required');
-    if (!form.to_city_key) return setError('To city is required');
-    if (form.from_city_key === form.to_city_key) return setError('From and To cities must be different');
+    if (!form.from_city || !form.from_state) return setError('Origin city and state are required');
+    if (!form.to_city || !form.to_state) return setError('Destination city and state are required');
+    if (form.from_city.toLowerCase() === form.to_city.toLowerCase() && form.from_state === form.to_state) {
+      return setError('From and To locations must be different');
+    }
 
     setSaving(true);
 
-    const fromCity = US_CITIES.find((c) => `${c.city}-${c.state}` === form.from_city_key);
-    const toCity = US_CITIES.find((c) => `${c.city}-${c.state}` === form.to_city_key);
+    // Look up state coordinates for map
+    const fromStateData = US_STATES.find((s) => s.code === form.from_state);
+    const toStateData = US_STATES.find((s) => s.code === form.to_state);
 
-    if (!fromCity || !toCity) {
-      setError('Invalid city selection');
+    if (!fromStateData || !toStateData) {
+      setError('Invalid state selection');
       setSaving(false);
       return;
     }
@@ -83,22 +144,22 @@ export default function NewShipment() {
         client_phone: form.client_phone || null,
         client_notes: form.client_notes || null,
         // From
-        from_city: fromCity.city,
-        from_state: fromCity.state,
-        from_zip: fromCity.zip,
+        from_city: form.from_city,
+        from_state: form.from_state,
+        from_zip: form.from_zip || null,
         from_street: form.sender_street || null,
-        from_x: fromCity.x,
-        from_y: fromCity.y,
+        from_x: fromStateData.x,
+        from_y: fromStateData.y,
         // To
-        to_city: toCity.city,
-        to_state: toCity.state,
-        to_zip: toCity.zip,
+        to_city: form.to_city,
+        to_state: form.to_state,
+        to_zip: form.to_zip || null,
         to_street: form.to_street || null,
-        to_x: toCity.x,
-        to_y: toCity.y,
-        current_city: fromCity.city,
-        current_x: fromCity.x,
-        current_y: fromCity.y,
+        to_x: toStateData.x,
+        to_y: toStateData.y,
+        current_city: form.from_city,
+        current_x: fromStateData.x,
+        current_y: fromStateData.y,
         weight: form.weight || null,
         service: form.service,
       })
@@ -113,11 +174,12 @@ export default function NewShipment() {
 
     if (data) {
       const now = new Date();
+      const locationStr = `${form.from_city}, ${form.from_state}${form.from_zip ? ' ' + form.from_zip : ''}`;
       await supabase.from('shipment_events').insert({
         shipment_id: data.id,
         event_date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         event_time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        location: `${fromCity.city}, ${fromCity.state} ${fromCity.zip}`,
+        location: locationStr,
         status_text: 'Shipment Created — Awaiting Pickup',
         is_alert: false,
       });
@@ -196,15 +258,27 @@ export default function NewShipment() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>From City *</label>
-            <select value={form.from_city_key} onChange={(e) => setForm({ ...form, from_city_key: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
-              <option value="">Select origin city...</option>
-              {US_CITIES.map((c) => (
-                <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
-              ))}
-            </select>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>From City *</label>
+              <input type="text" value={form.from_city} onChange={(e) => setForm({ ...form, from_city: e.target.value })}
+                placeholder="Los Angeles" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>From State *</label>
+              <select value={form.from_state} onChange={(e) => setForm({ ...form, from_state: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
+                <option value="">Select state...</option>
+                {US_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>From Zip</label>
+              <input type="text" value={form.from_zip} onChange={(e) => setForm({ ...form, from_zip: e.target.value })}
+                placeholder="90001" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
           </div>
         </div>
 
@@ -239,22 +313,33 @@ export default function NewShipment() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>To City *</label>
-              <select value={form.to_city_key} onChange={(e) => setForm({ ...form, to_city_key: e.target.value })}
+              <input type="text" value={form.to_city} onChange={(e) => setForm({ ...form, to_city: e.target.value })}
+                placeholder="New York" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>To State *</label>
+              <select value={form.to_state} onChange={(e) => setForm({ ...form, to_state: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
-                <option value="">Select destination city...</option>
-                {US_CITIES.map((c) => (
-                  <option key={`${c.city}-${c.state}`} value={`${c.city}-${c.state}`}>{c.city}, {c.state}</option>
+                <option value="">Select state...</option>
+                {US_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Internal Notes (Admin Only)</label>
-              <input type="text" value={form.client_notes} onChange={(e) => setForm({ ...form, client_notes: e.target.value })}
-                placeholder="Special instructions..." className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+              <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>To Zip</label>
+              <input type="text" value={form.to_zip} onChange={(e) => setForm({ ...form, to_zip: e.target.value })}
+                placeholder="10001" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider font-bold mb-2" style={{ color: '#6d7580' }}>Internal Notes (Admin Only)</label>
+            <input type="text" value={form.client_notes} onChange={(e) => setForm({ ...form, client_notes: e.target.value })}
+              placeholder="Special instructions..." className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
           </div>
         </div>
 
